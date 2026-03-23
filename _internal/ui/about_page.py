@@ -35,7 +35,7 @@ class AboutPage(ScrollablePageWidget):
         app_title.setStyleSheet(" font-size: 22px; font-weight: bold; color: #1e293b;")
         info_layout.addWidget(app_title)
 
-        version = QLabel('<div align="right" dir="rtl">الإصدار 2.1.5</div>')
+        version = QLabel('<div align="right" dir="rtl">الإصدار 2.1.7</div>')
         version.setStyleSheet(" font-size: 14px; color: #3b82f6; font-weight: bold;")
         info_layout.addWidget(version)
         #developer
