@@ -1687,6 +1687,8 @@ class SickLeavePage(QWidget):
         school = settings.get("school_name", "المؤسسة التعليمية")
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
+        year = datetime.now().year
+        school_initials = self._get_school_initials(school)
         director = settings.get("director_name", "")
         
         school_display = school
@@ -1762,6 +1764,14 @@ class SickLeavePage(QWidget):
                         %(school_display)s
                     </td>
                 </tr>
+                  <tr style="line-height: 0.8;">
+                    
+                  
+               
+                    <td dir="rtl" style="line-height: 0.8;font-size: 14px;direction:rtl;text-align: left;">
+                     <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم:.............&rlm;/&rlm; %(school_initials)s&rlm;/&rlm; %(year)s</span>
+                    </td>
+                    </tr>
                 <tr>
                 <td style="font-size: 24px;font-weight: bold;" align="center" width="100%%">
                    
@@ -1831,6 +1841,7 @@ class SickLeavePage(QWidget):
             "effective_date": effective_date,
             "work_status_text": work_status_text,
             "start_date": effective_date,
+            "year": year, "school_initials": school_initials,
             "date": datetime.now().strftime("%Y/%m/%d")
         }
         self._show_print_preview(html)
@@ -2068,6 +2079,40 @@ class SickLeavePage(QWidget):
         self._toast_container.addWidget(toast)
         self._active_toasts.append(toast)
         toast.show_toast()
+
+    def _get_school_initials(self, school_name):
+        """Extract initials from school name, ignoring honorary/type prefixes."""
+        if not school_name:
+            return ""
+
+        skip_words = {
+            "الشهيد", "الشهيدة", "المجاهد", "المجاهدة", "العلامة",
+            "القائد", "الأمير", "الشيخ", "الإمام", "الرئيس",
+            "البطل", "العقيد", "الرائد", "المقاوم", "المناضل",
+            "شهيد", "مجاهد", "علامة", "قائد", "أمير", "شيخ",
+        }
+
+        type_words = {
+            "متوسطة", "ثانوية", "ابتدائية", "مدرسة", "ليسي",
+            "إكمالية", "تقنية",
+        }
+
+        words = school_name.strip().split()
+        initials = []
+
+        for word in words:
+            clean = word.strip()
+            if not clean:
+                continue
+            bare = clean.lstrip("ال") if clean.startswith("ال") else clean
+            if clean in skip_words or bare in skip_words:
+                continue
+            if clean in type_words:
+                initials.append(clean[0])
+                continue
+            initials.append(clean[0])
+
+        return ".".join(initials)
 
     def _item(self, text):
         item = QTableWidgetItem(str(text))

@@ -5,6 +5,50 @@ with institution code support for all printable documents.
 """
 
 import database as db
+from datetime import datetime
+
+
+def _get_school_initials(school_name):
+    """Extract initials from school name, ignoring honorary/type prefixes.
+    E.g. 'متوسطة الشهيد نذار قدور' → 'م.ن.ق'
+    The first letter of the school type (متوسطة/ثانوية/ابتدائية) is kept,
+    then honorary words are skipped, and initials of remaining words are taken.
+    """
+    if not school_name:
+        return ""
+
+    # Words to skip entirely (honorary titles)
+    skip_words = {
+        "الشهيد", "الشهيدة", "المجاهد", "المجاهدة", "العلامة",
+        "القائد", "الأمير", "الشيخ", "الإمام", "الرئيس",
+        "البطل", "العقيد", "الرائد", "المقاوم", "المناضل",
+        "شهيد", "مجاهد", "علامة", "قائد", "أمير", "شيخ",
+    }
+
+    # School type words — take first letter then skip
+    type_words = {
+        "متوسطة", "ثانوية", "ابتدائية", "مدرسة", "ليسي",
+        "إكمالية", "تقنية",
+    }
+
+    words = school_name.strip().split()
+    initials = []
+
+    for word in words:
+        clean = word.strip()
+        if not clean:
+            continue
+        # Remove leading ال for comparison (but keep original for initial)
+        bare = clean.lstrip("ال") if clean.startswith("ال") else clean
+        if clean in skip_words or bare in skip_words:
+            continue
+        if clean in type_words:
+            initials.append(clean[0])
+            continue
+        # Take the first character
+        initials.append(clean[0])
+
+    return ".".join(initials)
 
 
 def get_document_header(settings=None, doc_number="", show_number=True):
@@ -19,16 +63,15 @@ def get_document_header(settings=None, doc_number="", show_number=True):
     Returns:
         HTML string for the header
     """
-      # Generate school initials for ref number
-        school_initials = self._get_school_initials(school)
-
     if settings is None:
         settings = db.get_all_settings()
     
     school = settings.get("school_name", "المؤسسة التعليمية")
     school_code = settings.get("school_code", "")
     wilaya = settings.get("wilaya", "")
-    year = QDate.currentDate().year()
+    year = datetime.now().year
+    school_initials = _get_school_initials(school)
+
     school_code_html = ""
     if school_code:
         school_code_html = f"<br/>رمز المؤسسة: {school_code}"
@@ -48,7 +91,7 @@ def get_document_header(settings=None, doc_number="", show_number=True):
                 مديرية التربية لولاية {wilaya}<br/>{school}{school_code_html}
             </td>
             <td style="text-align:left; width:50%;">
-                <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم:.............&rlm;/&rlm; %(school_initials)s&rlm;/&rlm; %(year)s</span>
+                <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم:.............&rlm;/&rlm; {school_initials}&rlm;/&rlm; {year}</span>
                    
             </td>
         </tr>
@@ -91,47 +134,7 @@ def get_document_header_compact(settings=None):
     </table>
     """
     return header
- def _get_school_initials(self, school_name):
-        """Extract initials from school name, ignoring honorary/type prefixes.
-        E.g. 'متوسطة الشهيد نذار قدور' → 'م.ن.ق'
-        The first letter of the school type (متوسطة/ثانوية/ابتدائية) is kept,
-        then honorary words are skipped, and initials of remaining words are taken.
-        """
-        if not school_name:
-            return ""
 
-        # Words to skip entirely (honorary titles)
-        skip_words = {
-            "الشهيد", "الشهيدة", "المجاهد", "المجاهدة", "العلامة",
-            "القائد", "الأمير", "الشيخ", "الإمام", "الرئيس",
-            "البطل", "العقيد", "الرائد", "المقاوم", "المناضل",
-            "شهيد", "مجاهد", "علامة", "قائد", "أمير", "شيخ",
-        }
-
-        # School type words — take first letter then skip
-        type_words = {
-            "متوسطة", "ثانوية", "ابتدائية", "مدرسة", "ليسي",
-            "إكمالية", "تقنية",
-        }
-
-        words = school_name.strip().split()
-        initials = []
-
-        for word in words:
-            clean = word.strip()
-            if not clean:
-                continue
-            # Remove leading ال for comparison (but keep original for initial)
-            bare = clean.lstrip("ال") if clean.startswith("ال") else clean
-            if clean in skip_words or bare in skip_words:
-                continue
-            if clean in type_words:
-                initials.append(clean[0])
-                continue
-            # Take the first character
-            initials.append(clean[0])
-
-        return ".".join(initials)
 
 def get_document_footer(wilaya="", doc_date="", show_employee_signature=True):
     """
