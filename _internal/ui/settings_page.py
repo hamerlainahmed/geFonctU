@@ -16,6 +16,7 @@ from ui.widgets import (
 )
 from ui.icons import get_icon, ICON_COLORS
 import database as db
+import archive_manager
 
 
 class SettingsPage(ScrollablePageWidget):
@@ -83,11 +84,63 @@ class SettingsPage(ScrollablePageWidget):
         self.director_input = ArabicLineEdit("اسم المدير(ة)")
         school_form.addRow("المدير(ة):", self.director_input)
 
-        self.school_year_input = ArabicLineEdit("السنة الدراسية (مثلاً 2025/2026)")
-        school_form.addRow("السنة الدراسية:", self.school_year_input)
+        # Removed school_year_input completely from here
 
         school_layout.addLayout(school_form)
         self.layout.addWidget(school_card)
+
+        # ── Start New Year / Archive Card ──
+        new_year_card = Card()
+        ny_layout = QVBoxLayout(new_year_card)
+        ny_layout.setSpacing(12)
+        
+        lbl = QLabel("إغلاق السنة الحالية وأرشفة البيانات")
+        lbl.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b;")
+        lbl.setLayoutDirection(Qt.RightToLeft)
+        ny_layout.addWidget(lbl)
+        
+        desc = QLabel(
+            "هذه العملية ستحتفظ ببيانات الموظفين، الإعدادات، وأرصدة العطل، بينما تُفرغ جداول غيابات السنة المنصرمة. "
+            "نسخة كاملة من القاعدة ستحفظ في صفحة (الأرشيف) لتتمكن من طباعة شهادات سنوات سابقة."
+        )
+        desc.setStyleSheet("color: #64748b; font-size: 14px;")
+        desc.setLayoutDirection(Qt.RightToLeft)
+        desc.setWordWrap(True)
+        ny_layout.addWidget(desc)
+        
+        ny_controls = QHBoxLayout()
+        ny_controls.setSpacing(16)
+        
+        import datetime
+        self.new_year_input = ArabicComboBox()
+        self.new_year_input.setMinimumWidth(220)
+        
+        current_active_year = archive_manager.get_current_school_year()
+        old_years = archive_manager.get_available_archive_years()
+        
+        cal_year = datetime.datetime.now().year
+        ny_1 = f"{cal_year}/{cal_year+1}"
+        ny_2 = f"{cal_year+1}/{cal_year+2}"
+        
+        years_set = set(old_years)
+        years_set.add(current_active_year)
+        years_set.add(ny_1)
+        years_set.add(ny_2)
+        
+        sorted_years = sorted(list(years_set), reverse=True)
+        self.new_year_input.addItems(sorted_years)
+        self.new_year_input.setCurrentText(current_active_year)
+        
+        ny_btn = ActionButton("تطبيق السنة المحددة", "inventory_2", "primary")
+        ny_btn.setMinimumWidth(180)
+        ny_btn.clicked.connect(self._manage_school_year)
+        
+        ny_controls.addWidget(ny_btn)
+        ny_controls.addWidget(self.new_year_input)
+        ny_controls.addStretch()
+        
+        ny_layout.addLayout(ny_controls)
+        self.layout.addWidget(new_year_card)
 
         # ── Control Buttons ──
         btn_layout = QHBoxLayout()
@@ -113,7 +166,7 @@ class SettingsPage(ScrollablePageWidget):
         self.wilaya_input.setText(settings.get("wilaya", ""))
         self.moudiriya_input.setText(settings.get("moudiriya", ""))
         self.director_input.setText(settings.get("director_name", ""))
-        self.school_year_input.setText(settings.get("school_year", ""))
+
 
     def _save_settings(self):
         db.set_setting("school_name", self.school_name_input.text().strip())
@@ -122,9 +175,48 @@ class SettingsPage(ScrollablePageWidget):
         db.set_setting("wilaya", self.wilaya_input.text().strip())
         db.set_setting("moudiriya", self.moudiriya_input.text().strip())
         db.set_setting("director_name", self.director_input.text().strip())
-        db.set_setting("school_year", self.school_year_input.text().strip())
+        # db.set_setting("school_year", ...) removed because it's managed via archive_manager
 
         QMessageBox.information(self, "نجاح", "✅ تم حفظ الإعدادات بنجاح")
 
     def refresh(self):
         self._load_settings()
+
+    def _manage_school_year(self):
+        selected_year = self.new_year_input.currentText().strip()
+        current_year = archive_manager.get_current_school_year()
+        
+        if selected_year == current_year:
+            QMessageBox.information(self, "تنبيه", f"السنة '{selected_year}' هي السنة النشطة حالياً.")
+            return
+            
+        old_years = archive_manager.get_available_archive_years()
+        
+        if selected_year in old_years:
+            reply = QMessageBox.question(
+                self, "استرجاع أرشيف قديم", 
+                f"هل تريد إعادة فتح السنة الدراسية المعزولة '{selected_year}'؟\n\nتنبيه: سيتم أرشفة السنة الحالية تلقائياً وإحلال السنة القديمة محلها كواجهة نشطة.",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    archive_manager.restore_school_year(selected_year)
+                    QMessageBox.information(self, "نجاح", "تم استرجاع السنة القديمة بنجاح.")
+                    if self.window() and hasattr(self.window(), '_update_statusbar'):
+                        self.window()._update_statusbar()
+                except Exception as e:
+                    QMessageBox.critical(self, "خطأ", f"حدث خطأ أثناء الاسترجاع: {e}")
+        else:
+            reply = QMessageBox.question(
+                self, "فتح سنة جديدة", 
+                f"هل أنت متأكد أنك تريد إغلاق السنة الحالية وبدء سنة '{selected_year}'؟\n\nسيتم حفظ نسخة في الأرشيف وتفريغ سجلات الغيابات الحالية.",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    archive_manager.start_new_school_year(selected_year)
+                    QMessageBox.information(self, "نجاح", "تم إنشاء السنة الدراسية الجديدة بنجاح وأُرشفة البيانات الأساسية.")
+                    if self.window() and hasattr(self.window(), '_update_statusbar'):
+                        self.window()._update_statusbar()
+                except Exception as e:
+                    QMessageBox.critical(self, "خطأ", f"حدث خطأ أثناء أرشفة القاعدة: {e}")

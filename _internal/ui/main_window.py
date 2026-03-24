@@ -22,6 +22,7 @@ from ui.sick_leave_page import SickLeavePage
 from ui.absences_page import AbsencesPage
 from ui.inquiries_page import InquiriesPage
 from ui.deductions_page import DeductionsPage
+from ui.archive_page import ArchivePage
 from ui.about_page import AboutPage
 
 import excel_handler
@@ -135,29 +136,28 @@ class MainWindow(QMainWindow):
         title_row = QHBoxLayout()
         title_row.setSpacing(10)
         
+        title_label = QLabel("نظام تسيير الموظفين")
+        title_label.setObjectName("sidebar_title")
+        title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        title_label.setFixedWidth(150) # Fixed to prevent resize jumping
+        
         app_icon_label = QLabel()
         app_icon_label.setPixmap(get_icon("institution", color="#60a5fa").pixmap(32, 32))
         app_icon_label.setFixedSize(36, 36)
         app_icon_label.setAlignment(Qt.AlignCenter)
         app_icon_label.setStyleSheet("background: rgba(59, 130, 246, 0.15); border-radius: 8px; padding: 2px;")
-        title_row.addWidget(app_icon_label)
         
-        title_label = QLabel("نظام تسيير الموظفين")
-        title_label.setObjectName("sidebar_title")
-        title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        title_label.setLayoutDirection(Qt.RightToLeft)
-        title_label.setWordWrap(True)
-        title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         title_row.addWidget(title_label)
+        title_row.addWidget(app_icon_label)
         
         title_layout.addLayout(title_row)
 
-        subtitle = QLabel("إدارة شؤون الموظفين والوثائق")
-        subtitle.setObjectName("sidebar_subtitle")
-        subtitle.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        subtitle.setLayoutDirection(Qt.RightToLeft)
-        subtitle.setWordWrap(True)
-        title_layout.addWidget(subtitle)
+        # subtitle = QLabel("إدارة شؤون الموظفين والوثائق")
+        # subtitle.setObjectName("sidebar_subtitle")
+        # subtitle.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # subtitle.setLayoutDirection(Qt.RightToLeft)
+        # subtitle.setWordWrap(True)
+        # title_layout.addWidget(subtitle)
 
         sidebar_layout.addWidget(title_widget)
         sidebar_layout.addWidget(SidebarSeparator())
@@ -171,6 +171,7 @@ class MainWindow(QMainWindow):
             ("الغيابات والتأخرات",   "absences"),
             ("الاستفسارات",         "inquiries"),
             ("الاقتطاعات",          "deductions"),
+            ("الأرشيف والسنوات",   "archive"),
             ("الإعدادات",           "settings"),
             ("عن البرنامج",         "about"),
         ]
@@ -199,6 +200,7 @@ class MainWindow(QMainWindow):
         self.absences_page = AbsencesPage()
         self.inquiries_page = InquiriesPage()
         self.deductions_page = DeductionsPage()
+        self.archive_page = ArchivePage()
         self.settings_page = SettingsPage()
         self.about_page = AboutPage()
 
@@ -214,8 +216,9 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.absences_page)    # 3
         self.stack.addWidget(self.inquiries_page)   # 4
         self.stack.addWidget(self.deductions_page)  # 5
-        self.stack.addWidget(self.settings_page)    # 6
-        self.stack.addWidget(self.about_page)       # 7
+        self.stack.addWidget(self.archive_page)     # 6
+        self.stack.addWidget(self.settings_page)    # 7
+        self.stack.addWidget(self.about_page)       # 8
 
         main_layout.addWidget(sidebar)
         main_layout.addWidget(self.stack, stretch=1)
@@ -316,5 +319,5 @@ class MainWindow(QMainWindow):
 
     def _show_about(self):
         """Navigate to the About page."""
-        # 7 is the index of the about_page (0-7)
-        self._on_nav_clicked(7)
+        # 8 is the index of the about_page (0-8)
+        self._on_nav_clicked(8)

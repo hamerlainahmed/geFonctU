@@ -165,10 +165,10 @@ class HomePage(ScrollablePageWidget):
         self.layout.addLayout(actions_row)
         
         actions_grid = QGridLayout()
-        actions_grid.setSpacing(24)
+        actions_grid.setSpacing(12)
         
-        btn_add_emp = QuickActionButton("إضافة موظف جديد", "تسجيل موظف أو أستاذ", "add")
-        btn_add_emp.clicked.connect(lambda: self.main_window._on_nav_clicked(1))
+        # btn_add_emp = QuickActionButton("إضافة موظف جديد", "تسجيل موظف أو أستاذ", "add")
+        # btn_add_emp.clicked.connect(lambda: self.main_window._on_nav_clicked(1))
         
         btn_add_leave = QuickActionButton("إضافة عطلة مرضية", "تسجيل عطلة ومتابعتها", "medical")
         btn_add_leave.clicked.connect(lambda: self.main_window._on_nav_clicked(2))
@@ -182,19 +182,19 @@ class HomePage(ScrollablePageWidget):
         btn_deductions = QuickActionButton("الاقتطاعات", "طباعة إشعارات وكشوف الخصم", "deduction")
         btn_deductions.clicked.connect(lambda: self.main_window._on_nav_clicked(5))
 
-        btn_settings = QuickActionButton("إعدادات النظام", "تغيير بيانات المؤسسة", "settings")
-        btn_settings.clicked.connect(lambda: self.main_window._on_nav_clicked(6))
+        # btn_settings = QuickActionButton("إعدادات النظام", "تغيير بيانات المؤسسة", "settings")
+        # btn_settings.clicked.connect(lambda: self.main_window._on_nav_clicked(6))
 
-        btn_import_excel = QuickActionButton("استيراد إكسل", "إضافة قوائم موظفين بالتشغيل السريع", "file_excel")
+        btn_import_excel = QuickActionButton("استيراد من إكسل", "إضافة قوائم موظفين بالتشغيل السريع", "file_excel")
         btn_import_excel.clicked.connect(lambda: self.main_window._import_excel())
         
-        actions_grid.addWidget(btn_add_emp, 0, 0)
-        actions_grid.addWidget(btn_add_leave, 0, 1)
-        actions_grid.addWidget(btn_add_absence, 0, 2)
-        actions_grid.addWidget(btn_inquiries, 1, 0)
-        actions_grid.addWidget(btn_deductions, 1, 1)
-        actions_grid.addWidget(btn_settings, 1, 2)
-        actions_grid.addWidget(btn_import_excel, 2, 0)
+        # actions_grid.addWidget(btn_add_emp, 0, 0)
+        actions_grid.addWidget(btn_add_leave, 0, 0)
+        actions_grid.addWidget(btn_add_absence, 0, 1)
+        actions_grid.addWidget(btn_inquiries, 0, 2)
+        actions_grid.addWidget(btn_deductions, 1, 0)
+        # actions_grid.addWidget(btn_settings, 1, 1)
+        actions_grid.addWidget(btn_import_excel, 1, 1)
         
         self.layout.addLayout(actions_grid)
         self.layout.addStretch()

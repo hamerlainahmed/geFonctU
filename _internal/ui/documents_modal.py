@@ -14,16 +14,17 @@ from ui.widgets import (
     ArabicLineEdit, ArabicDateEdit, ActionButton, ArabicFormLayout,
     PageHeader, Separator
 )
-from ui.print_header import get_document_header
+from ui.print_header import get_document_header, get_document_footer
 import database as db
 
 class PrintDocumentDialog(QDialog):
     """Dialog to configure and print a specific document for an employee."""
 
-    def __init__(self, employee, doc_type, parent=None):
+    def __init__(self, employee, doc_type, parent=None, custom_settings=None):
         super().__init__(parent)
         self.employee = employee
         self.doc_type = doc_type
+        self.custom_settings = custom_settings
         
         self.setWindowTitle("طباعة الوثيقة: " + doc_type)
         self.setLayoutDirection(Qt.RightToLeft)
@@ -45,7 +46,9 @@ class PrintDocumentDialog(QDialog):
 
         form = ArabicFormLayout()
 
-        self.doc_number_input = ArabicLineEdit("رقم الوثيقة (اختياري)")
+        from PyQt5.QtGui import QIntValidator
+        self.doc_number_input = ArabicLineEdit("رقم الوثيقة (أرقام فقط)")
+        self.doc_number_input.setValidator(QIntValidator(1, 999999, self))
         form.addRow("الرقم:", self.doc_number_input)
 
         self.doc_date = ArabicDateEdit()
@@ -77,9 +80,13 @@ class PrintDocumentDialog(QDialog):
 
     def _generate_html(self):
         emp = self.employee
-        settings = db.get_all_settings()
-        
-        doc_number = self.doc_number_input.text().strip() or "........"
+        settings = self.custom_settings if self.custom_settings else db.get_all_settings()
+        doc_input = self.doc_number_input.text().strip()
+        if doc_input.isdigit():
+            doc_number = doc_input.zfill(3)
+        else:
+            doc_number = doc_input or "........"
+            
         doc_date = self.doc_date.date().toString("yyyy/MM/dd")
         reason = self.reason_input.toPlainText().strip()
 
@@ -87,6 +94,7 @@ class PrintDocumentDialog(QDialog):
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
         school_year = settings.get("school_year", "2025/2026")
+        school_address = settings.get("school_address", "......................")
 
         emp_dict = dict(emp)
         emp_name = db.get_employee_full_name(emp)
@@ -99,36 +107,99 @@ class PrintDocumentDialog(QDialog):
         emp_ln = emp_dict.get("last_name", "") or ""
         emp_bd = (emp_dict.get("birth_date", "") or "ــــ/ــ/ــ").replace("-", "/")
         emp_bp = ""
+        emp_end_date = (emp_dict.get("end_date", "") or "").replace("-", "/")
 
         subject_line = ""
         if emp_subject:
             subject_line = f"، مادة\u200f: <b>{emp_subject}</b>"
 
-        # Header with institution logo
+        # By default, use generic headers
         header_html = get_document_header(settings, doc_number)
+        footer_html = get_document_footer(wilaya, doc_date, show_employee_signature=False)
 
         # Body by type
         if self.doc_type == "شهادة عمل":
+            from ui.print_header import _get_school_initials
+            from datetime import datetime
+            school_initials = _get_school_initials(school)
+            year = datetime.now().year
+            doc_num_str = doc_number if doc_number else "............."
+
+            school_display = school + " - " + school_address
+            school_code = settings.get("school_code", "")
+            if school_code:
+                school_display += f"<br/>رمز المؤسسة: {school_code}"
+
+            if "مستخلف" in emp_grade and emp_end_date:
+                work_period_sentence = f"أنه زاول عمله من {effective_date} إلى {emp_end_date}."
+            else:
+                work_period_sentence = f"أنه يزاول عمله منذ {effective_date} إلى يومنا هذا."
+            
+            # COMPLETELY BYPASS DEFAULT HEADERS/FOOTERS/CSS for exact matching dimensions
+            header_html = ""
+            footer_html = ""
+            
             body = f"""
-            <h2 style="text-align:center; margin:10px 0; font-size:36px; font-weight:bold;">شـهـادة عمـل</h2>
-            <br/><br/>
-            <p style="font-size:18px; line-height:1.5; font-weight:bold;">
-                يشهد السيد مدير {school} بأن السيد(ة) المذكور(ة) أسفله:
-            </p>
-            <table dir="rtl" style="font-size:18px; font-weight:bold; line-height:1.5; border: none; width: 100%;">
-                <tr><td style="width: 150px; border: none;">الإسم</td><td style="width: 20px; border: none; text-align: center;">:</td><td style="border: none;">{emp_fn}</td></tr>
-                <tr><td style="border: none;">اللقب</td><td style="border: none; text-align: center;">:</td><td style="border: none;">{emp_ln}</td></tr>
-                <tr><td style="border: none;">تاريخ ومكان الميلاد</td><td style="border: none; text-align: center;">:</td><td style="border: none;">{emp_bd} {emp_bp}</td></tr>
-                <tr><td style="border: none;">الوظيفة</td><td style="border: none; text-align: center;">:</td><td style="border: none;">{emp_grade} {emp_subject}</td></tr>
+            <style>
+                body {{ margin: 2px !important; line-height: 0.9 !important; }}
+                table {{ border-collapse: separate !important; width: 100% !important; }}
+                td, th {{ border: none !important; padding: 0px !important; text-align: right; }}
+            </style>
+            
+            <table width="100%" dir="rtl" style="font-size:18px; font-weight:bold; margin-top: 0px; margin-bottom: 2px;line-height: 0.8;">
+                <tr >
+                    <td align="center" width="100%" style="padding:0px; font-size: 18px; font-weight: bold; line-height: 0.8; text-align: center;">الجمهورية الجزائرية الديمقراطية الشعبية</td>
+                </tr>
+                 <tr >
+                    <td align="center" width="100%" style="padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8; text-align: center;">وزارة التربية الوطنية</td>
+                </tr>
+                 <tr>
+                    <td align="right" width="100%" style="padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">مديرية التربية لولاية {wilaya}</td>
+                </tr>
+                 <tr>
+                    <td align="right" width="100%" style="padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">{school_display}</td>
+                </tr>
+                  <tr style="line-height: 0.8;">
+                    <td dir="rtl" style="line-height: 0.8;font-size: 14px;direction:rtl;text-align: left;">
+                     <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم: {doc_num_str}&rlm;/&rlm; {school_initials}&rlm;/&rlm; {year}</span>
+                    </td>
+                    </tr>
+                <tr>
+                <td style="font-size: 24px;font-weight: bold; text-align: center;" align="center" width="100%">شهادة عمــــل</td>
+                </tr>
             </table>
-            <br/>
-            <p style="font-size:18px; line-height:1.5; font-weight:bold;">
-                أنه يزاول عمله منذ {effective_date} إلى يومنا هذا.
-            </p>
-            <br/><br/>
-            <p style="font-size:18px; line-height:1.5; font-weight:bold; text-align: center; margin-top: 30px;">
-                سُلمت هذه الشهادة للعمل بها في حدود ما يقتضيه القانون.
-            </p>
+          
+            <table dir="rtl" width="100%" border="0" style="font-size:14px; font-weight:bold; line-height:0.9; margin-top: 2px;">
+                <tr>
+                <td align="right" colspan="3" style="font-size:16px;">يشهد السيد مدير {school} أن السيد(ة) المذكور(ة) أسفله:</td>
+                </tr>
+                <tr>
+                <td align="right" width="75%" style="border: none;">{emp_fn}</td>
+                <td align="right" width="20%" style="border: none;">الإسم:</td>
+                <td width="5%" style="border: none;"> </td>
+                </tr>
+               <tr>
+                <td align="right" width="75%" style="border: none;">{emp_ln}</td>
+                <td align="right" width="20%" style="border: none;">اللقب:</td>
+                <td width="5%" style="border: none;"> </td>
+                </tr>
+                <tr>
+                <td align="right" width="75%" style="border: none;">{emp_bd} {emp_bp}</td>
+                <td align="right" width="20%" style="border: none;">تاريخ ومكان الميلاد:</td>
+                <td width="5%" style="border: none;"> </td>
+                </tr>
+                <tr>
+                <td align="right" width="75%" style="border: none;">{emp_grade} مادة: {emp_subject}</td>
+                <td align="right" width="20%" style="border: none;">الوظيفة:</td>
+                <td width="5%" style="border: none;"> </td>
+                </tr>
+                <tr>
+                <td align="center" colspan="3" style="font-size:18px;border: none;">{work_period_sentence}</td>
+                </tr>
+                 <tr>
+                <td align="center" style="text-align: center; font-size:16px; line-height:1.0; font-weight:bold; margin-top: 5px;" colspan="3">سُلمت هذه الشهادة للعمل بها في حدود ما يقتضيه القانون.</td>
+                </tr>
+            </table>
             """
         elif self.doc_type == "محضر تنصيب":
             body = f"""
@@ -215,7 +286,7 @@ class PrintDocumentDialog(QDialog):
                     </td>
                     <td style="text-align:left; width:50%;">
                         <div style="font-size:16px; font-weight: bold;">
-                            حرر بـ {wilaya} في {doc_date}<br/>
+                            حرر بـ {school_address} في {doc_date}<br/>
                             مدير المؤسسة<br/><br/><br/>
                         </div>
                     </td>
@@ -224,20 +295,16 @@ class PrintDocumentDialog(QDialog):
             """
         else:
             footer = f"""
-            <br/><br/>
-            <table width="100%" dir="rtl" style="margin-top: 30px;">
+         
+            <table width="100%" dir="rtl" style="margin-top: 1px;">
                 <tr>
-                    <td style="text-align:left; width:50%;">
-                        <div style="font-size:16px; font-weight:bold;">
-                            {wilaya} في {doc_date}<br/>
-                            المدير(ة)<br/><br/><br/>
+                    <td width="50%%" style="text-align:left; width:50%;">
+                        <div align="center" style="font-size:16px; font-weight:bold;">
+                            {school_address} في {doc_date}<br/>
+                            المدير(ة)
                         </div>
                     </td>
-                    <td style="text-align:right; width:50%;">
-                        <div style="font-size:16px; font-weight:bold;">
-                            إمضاء المعني(ة)<br/><br/><br/>
-                        </div>
-                    </td>
+                    <td width="50%%"></td>
                 </tr>
             </table>
             """
@@ -246,7 +313,7 @@ class PrintDocumentDialog(QDialog):
         return f"""
         <html dir="rtl">
         <head><style>
-            body {{ font-family: 'Amiri', 'Traditional Arabic', serif; direction: rtl; text-align: right; margin: {body_margin}; line-height: 1.8; }}
+            body {{ font-family: 'Amiri', 'Traditional Arabic', serif; direction: rtl; text-align: right; margin: {body_margin}; line-height: 0.9; }}
             h2 {{ color: #1a1a1a; }}
         </style></head>
         <body dir="rtl">{header_html} {body} {footer}</body></html>

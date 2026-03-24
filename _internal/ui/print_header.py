@@ -76,9 +76,7 @@ def get_document_header(settings=None, doc_number="", show_number=True):
     if school_code:
         school_code_html = f"<br/>رمز المؤسسة: {school_code}"
     
-    number_section = ""
-    if show_number and doc_number:
-        number_section = f"الرقم: {doc_number}"
+    doc_num_str = doc_number.strip() if doc_number else "............."
     
     header = f"""
     <div style="text-align:center; margin-bottom: 20px; font-weight: bold;">
@@ -91,8 +89,7 @@ def get_document_header(settings=None, doc_number="", show_number=True):
                 مديرية التربية لولاية {wilaya}<br/>{school}{school_code_html}
             </td>
             <td style="text-align:left; width:50%;">
-                <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم:.............&rlm;/&rlm; {school_initials}&rlm;/&rlm; {year}</span>
-                   
+                <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم: {doc_num_str}&rlm;/&rlm; {school_initials}&rlm;/&rlm; {year}</span>
             </td>
         </tr>
     </table>

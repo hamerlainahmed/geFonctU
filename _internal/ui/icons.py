@@ -158,13 +158,14 @@ ICONS = {
     "template":         "fa6s.file-excel",
     "resume":           "fa6s.play",
     "stop":             "fa6s.stop",
+    "archive":          "fa6s.box-archive",
 }
 
 
 # ── Sidebar Icon List (matches nav_items order) ──────────────────
 SIDEBAR_ICONS = [
     "home", "employees", "sick_leave", "absences",
-    "inquiries", "deductions", "settings", "about"
+    "inquiries", "deductions", "archive", "settings", "about"
 ]
 
 
