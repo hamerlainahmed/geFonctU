@@ -1,9 +1,10 @@
 {
     "version": "2.1.9",
-    "release_date": "2026-03-25T21:41:57.421987",
-    "release_notes": "Minor bug fixes and performance improvements.",
+    "release_date": "2026-03-25T21:49:32.477034",
+    "release_notes": "- تضمين تقييم الموظف في البرنامج",
     "files": {
         "geFonct.exe": "497835e3655bb6d5f4ca68c5e5b72bbb2ab60762250c697eac069c353f3f73bf",
+        "updater.exe": "7bf4df4544f1c4db0395eb76277e7821995d1d53047c032ea1e2598a4458b661",
         "_internal/81d243bd2c585b0f4821__mypyc.cp38-win32.pyd": "178783cf85ba5a02c6e63c3e61c03e65cd35672128cdc23459d3f0d06eab8012",
         "_internal/base_library.zip": "6a0190b65dc85feb2c6176d8a5fd67a87099b6dae43cba9bc57981150874c000",
         "_internal/libcrypto-1_1.dll": "1e95a63b165672accde92a9c9f8b9052c8f6357344f1376af9f916aeeb306da3",
