@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Main Window — Premium Material Design sidebar with Dashboard home.
-Features Material Design icons, animated transitions, and polished UI.
+Main Window — Refactored to use MSFluentWindow for the Windows 11 Fluent Design aesthetic.
 """
 
-from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QStackedWidget, QLabel, QFileDialog, QMessageBox, QDialog,
-    QSpacerItem, QSizePolicy, QStatusBar, QAction,
-    QMenuBar, QMenu, QFrame, QGraphicsDropShadowEffect,
-)
-from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve
-from PyQt5.QtGui import QFont, QIcon, QColor, QPixmap
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog, QApplication
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon
+from qfluentwidgets import (MSFluentWindow, NavigationItemPosition, 
+                           FluentIcon as FIF, InfoBar, InfoBarPosition)
 
-from ui.widgets import SidebarButton, Separator, SidebarSeparator
-from ui.icons import get_icon, get_colored_icon, ICON_COLORS, SIDEBAR_ICONS
+import excel_handler
+import database as db
+from updater_integration import UpdateCheckThread, UpdateNotificationDialog, trigger_updater, check_show_whats_new
+
 from ui.home_page import HomePage
 from ui.employees_page import EmployeesPage
 from ui.settings_page import SettingsPage
@@ -25,39 +23,36 @@ from ui.deductions_page import DeductionsPage
 from ui.archive_page import ArchivePage
 from ui.about_page import AboutPage
 
-import excel_handler
-import database as db
-from updater_integration import UpdateCheckThread, UpdateNotificationDialog, trigger_updater, check_show_whats_new
-
-class MainWindow(QMainWindow):
-    """Main application window with RTL sidebar."""
+class MainWindow(MSFluentWindow):
+    """Main application window structured with Windows 11 Fluent UI sidebar."""
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("نظام تسيير الموظفين")
-        self.setLayoutDirection(Qt.RightToLeft)
         self.setMinimumSize(1100, 700)
-        self.resize(1320, 820)
+        self.showMaximized()
         
-        # Set window icon
-        self.setWindowIcon(get_icon("institution", color="#3b82f6"))
+        # We can set the window icon natively
+        self.setWindowIcon(QIcon("app_icon.ico"))
 
-        self._build_menu()
-        self._build_ui()
-        self._build_statusbar()
+        # Initialize UI parts
+        self._init_pages()
+        self._build_navigation()
 
-        # Select first page
-        self._nav_buttons[0].setChecked(True)
-        self._on_nav_clicked(0)
+        # Connect signals for status updates
+        self.employees_page.employee_count_changed.connect(self._update_status)
+        self.employees_page.employee_count_changed.connect(self.home_page.refresh)
 
         # Show "What's New" dialog if just updated
         check_show_whats_new(self)
 
         # Start smart background update check
         self.check_for_updates()
+        
+        # Initial status update
+        self._update_status()
 
     def check_for_updates(self):
-        """Fires the background thread to check for updates."""
         try:
             self.update_thread = UpdateCheckThread()
             self.update_thread.update_available.connect(self.prompt_update)
@@ -66,200 +61,125 @@ class MainWindow(QMainWindow):
             print(f"Failed to start update checker: {e}")
 
     def prompt_update(self, new_version, release_notes):
-        """Pops up the elegant notification dialog."""
         dialog = UpdateNotificationDialog(new_version, release_notes, self)
-        # Use exec_ for PyQt5
         if dialog.exec_() == QDialog.Accepted:
             trigger_updater(self)
 
-    def _build_menu(self):
-        """Create the menu bar."""
-        menubar = self.menuBar()
-        menubar.setLayoutDirection(Qt.RightToLeft)
-
-        # File menu
-        file_menu = menubar.addMenu("ملف")
-        file_menu.setLayoutDirection(Qt.RightToLeft)
-
-        import_action = QAction(get_icon("import", color="#374151"), "استيراد من إكسل", self)
-        import_action.triggered.connect(self._import_excel)
-        file_menu.addAction(import_action)
-
-        export_action = QAction(get_icon("export", color="#374151"), "تصدير إلى إكسل", self)
-        export_action.triggered.connect(self._export_excel)
-        file_menu.addAction(export_action)
-
-        template_action = QAction(get_icon("template", color="#374151"), "تصدير نموذج فارغ", self)
-        template_action.triggered.connect(self._export_template)
-        file_menu.addAction(template_action)
-
-        file_menu.addSeparator()
-
-        exit_action = QAction(get_icon("exit", color="#374151"), "خروج", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-        # Help menu
-        help_menu = menubar.addMenu("مساعدة")
-        help_menu.setLayoutDirection(Qt.RightToLeft)
-
-        about_action = QAction(get_icon("about", color="#374151"), "حول التطبيق", self)
-        about_action.triggered.connect(self._show_about)
-        help_menu.addAction(about_action)
-
-    def _build_ui(self):
-        """Build the main UI layout."""
-        central = QWidget()
-        central.setLayoutDirection(Qt.RightToLeft)
-        self.setCentralWidget(central)
-
-        main_layout = QHBoxLayout(central)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        # ── Sidebar ──
-        sidebar = QWidget()
-        sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(270)
-        sidebar.setLayoutDirection(Qt.RightToLeft)
-        sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        sidebar_layout.setSpacing(0)
-
-        # App Title with icon
-        title_widget = QWidget()
-        title_layout = QVBoxLayout(title_widget)
-        title_layout.setContentsMargins(20, 24, 20, 4)
-        title_layout.setSpacing(2)
-
-        # Title row with logo icon
-        title_row = QHBoxLayout()
-        title_row.setSpacing(10)
+    def _init_pages(self):
+        """Create all the main pages."""
+        self.home_page = HomePage(self) # Some pages expect parent=self to call self._on_nav_clicked or stack
+        self.home_page.setObjectName("HomePage")
         
-        title_label = QLabel("نظام تسيير الموظفين")
-        title_label.setObjectName("sidebar_title")
-        title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        title_label.setFixedWidth(150) # Fixed to prevent resize jumping
-        
-        app_icon_label = QLabel()
-        app_icon_label.setPixmap(get_icon("institution", color="#60a5fa").pixmap(32, 32))
-        app_icon_label.setFixedSize(36, 36)
-        app_icon_label.setAlignment(Qt.AlignCenter)
-        app_icon_label.setStyleSheet("background: rgba(59, 130, 246, 0.15); border-radius: 8px; padding: 2px;")
-        
-        title_row.addWidget(title_label)
-        title_row.addWidget(app_icon_label)
-        
-        title_layout.addLayout(title_row)
-
-        # subtitle = QLabel("إدارة شؤون الموظفين والوثائق")
-        # subtitle.setObjectName("sidebar_subtitle")
-        # subtitle.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        # subtitle.setLayoutDirection(Qt.RightToLeft)
-        # subtitle.setWordWrap(True)
-        # title_layout.addWidget(subtitle)
-
-        sidebar_layout.addWidget(title_widget)
-        sidebar_layout.addWidget(SidebarSeparator())
-        sidebar_layout.addSpacing(12)
-
-        # Navigation with Material icons
-        nav_items = [
-            ("الرئيسية",             "home"),
-            ("إدارة الموظفين",       "employees"),
-            ("العطل المرضية",        "sick_leave"),
-            ("الغيابات والتأخرات",   "absences"),
-            ("الاستفسارات",         "inquiries"),
-            ("الاقتطاعات",          "deductions"),
-            ("الأرشيف والسنوات",   "archive"),
-            ("الإعدادات",           "settings"),
-            ("عن البرنامج",         "about"),
-        ]
-
-        self._nav_buttons = []
-        for idx, (text, icon_name) in enumerate(nav_items):
-            btn = SidebarButton(text, icon_name)
-            btn.clicked.connect(lambda checked, i=idx: self._on_nav_clicked(i))
-            sidebar_layout.addWidget(btn)
-            self._nav_buttons.append(btn)
-
-        sidebar_layout.addStretch()
-
-        # Sidebar footer
-        sidebar_layout.addWidget(SidebarSeparator())
-        sidebar_layout.addSpacing(12)
-
-
-        # ── Content Area ──
-        self.stack = QStackedWidget()
-        self.stack.setLayoutDirection(Qt.RightToLeft)
-
-        self.home_page = HomePage(self) # Pass self so it can navigate
         self.employees_page = EmployeesPage()
-        self.sick_leave_page = SickLeavePage()
-        self.absences_page = AbsencesPage()
-        self.inquiries_page = InquiriesPage()
-        self.deductions_page = DeductionsPage()
-        self.archive_page = ArchivePage()
-        self.settings_page = SettingsPage()
-        self.about_page = AboutPage()
-
-        # We keep the employee count changed signal to update status bar, no more side bar stats
-        self.employees_page.employee_count_changed.connect(self._update_statusbar)
+        self.employees_page.setObjectName("EmployeesPage")
         
-        # When pages change, we can also refresh home
-        self.employees_page.employee_count_changed.connect(self.home_page.refresh)
+        self.sick_leave_page = SickLeavePage()
+        self.sick_leave_page.setObjectName("SickLeavePage")
+        
+        self.absences_page = AbsencesPage()
+        self.absences_page.setObjectName("AbsencesPage")
+        
+        self.inquiries_page = InquiriesPage()
+        self.inquiries_page.setObjectName("InquiriesPage")
+        
+        self.deductions_page = DeductionsPage()
+        self.deductions_page.setObjectName("DeductionsPage")
+        
+        self.archive_page = ArchivePage()
+        self.archive_page.setObjectName("ArchivePage")
+        
+        self.settings_page = SettingsPage()
+        self.settings_page.setObjectName("SettingsPage")
+        
+        self.about_page = AboutPage()
+        self.about_page.setObjectName("AboutPage")
 
-        self.stack.addWidget(self.home_page)       # 0
-        self.stack.addWidget(self.employees_page)   # 1
-        self.stack.addWidget(self.sick_leave_page)  # 2
-        self.stack.addWidget(self.absences_page)    # 3
-        self.stack.addWidget(self.inquiries_page)   # 4
-        self.stack.addWidget(self.deductions_page)  # 5
-        self.stack.addWidget(self.archive_page)     # 6
-        self.stack.addWidget(self.settings_page)    # 7
-        self.stack.addWidget(self.about_page)       # 8
-
-        main_layout.addWidget(sidebar)
-        main_layout.addWidget(self.stack, stretch=1)
-
-    def _build_statusbar(self):
-        """Create the status bar."""
-        self.status_bar = QStatusBar()
-        self.status_bar.setLayoutDirection(Qt.RightToLeft)
-        self.setStatusBar(self.status_bar)
-        self._update_statusbar()
+        # Mock out stack indexing if sub-pages try to call self.stack.setCurrentIndex(index)
+        if not hasattr(self, 'stack'):
+            self.stack = self.stackedWidget
 
     def _on_nav_clicked(self, index):
-        """Switch to the selected page."""
-        for i, btn in enumerate(self._nav_buttons):
-            btn.setChecked(i == index)
-            btn.setProperty("active", i == index)
-            btn.style().unpolish(btn)
-            btn.style().polish(btn)
+        """Helper to catch old manual navigation from inner pages (e.g. from Home -> Setup)"""
+        map_index_to_page = {
+            0: self.home_page,
+            1: self.employees_page,
+            2: self.sick_leave_page,
+            3: self.absences_page,
+            4: self.inquiries_page,
+            5: self.deductions_page,
+            6: self.archive_page,
+            7: self.settings_page,
+            8: self.about_page,
+        }
+        if index in map_index_to_page:
+            obj_name = map_index_to_page[index].objectName()
+            self.navigationInterface.setCurrentItem(obj_name)
+            self.switchTo(map_index_to_page[index])
 
-        self.stack.setCurrentIndex(index)
-
-        # Refresh the page
-        page = self.stack.currentWidget()
-        if hasattr(page, 'refresh'):
-            page.refresh()
-
-        self._update_statusbar()
-
-    def _update_statusbar(self):
+    def _build_navigation(self):
+        """Assemble the sidebar Navigation Interface."""
+        # Top pages
+        self.addSubInterface(self.home_page, FIF.HOME, "الرئيسية", position=NavigationItemPosition.TOP)
+        self.addSubInterface(self.employees_page, FIF.PEOPLE, "إدارة الموظفين", position=NavigationItemPosition.TOP)
+        self.addSubInterface(self.sick_leave_page, FIF.HEART, "العطل المرضية", position=NavigationItemPosition.TOP)
+        self.addSubInterface(self.absences_page, FIF.CALENDAR, "الغيابات والتأخرات", position=NavigationItemPosition.TOP)
+        self.addSubInterface(self.inquiries_page, FIF.HELP, "الاستفسارات", position=NavigationItemPosition.TOP)
+        self.addSubInterface(self.deductions_page, FIF.CUT, "الاقتطاعات", position=NavigationItemPosition.TOP)
+        self.addSubInterface(self.archive_page, FIF.FOLDER, "الأرشيف والسنوات", position=NavigationItemPosition.TOP)
+        
+        # Bottom Actions 
+        # self.navigationInterface.addItem(
+        #     routeKey='ImportExcel',
+        #     icon=FIF.DOWNLOAD,
+        #     text='استيراد من إكسل',
+        #     onClick=self._import_excel,
+        #     selectable=False,
+        #     position=NavigationItemPosition.BOTTOM
+        # )
+        # self.navigationInterface.addItem(
+        #     routeKey='ExportExcel',
+        #     icon=FIF.SHARE,
+        #     text='تصدير إلى إكسل',
+        #     onClick=self._export_excel,
+        #     selectable=False,
+        #     position=NavigationItemPosition.BOTTOM
+        # )
+        # self.navigationInterface.addItem(
+        #     routeKey='ExportTemplate',
+        #     icon=FIF.DOCUMENT,
+        #     text='تصدير نموذج فارغ',
+        #     onClick=self._export_template,
+        #     selectable=False,
+        #     position=NavigationItemPosition.BOTTOM
+        # )
+        
+        # Bottom Navigation Interfaces
+        self.addSubInterface(self.settings_page, FIF.SETTING, "الإعدادات", position=NavigationItemPosition.BOTTOM)
+        self.addSubInterface(self.about_page, FIF.INFO, "عن البرنامج", position=NavigationItemPosition.BOTTOM)
+        
+        # Exit Action
+        self.navigationInterface.addItem(
+            routeKey='ExitApp',
+            icon=FIF.POWER_BUTTON,
+            text='خروج',
+            onClick=self.close,
+            selectable=False,
+            position=NavigationItemPosition.BOTTOM
+        )
+        
+        # Set default active
+        self.navigationInterface.setCurrentItem(self.home_page.objectName())
+        
+    def _update_status(self):
+        # Update the main window title for status
         employees = db.get_all_employees()
         active_leaves = db.get_active_sick_leaves()
-        self.status_bar.showMessage(
-            "إجمالي الموظفين: %d  |  عطل مرضية جارية: %d  |  السنة الدراسية: %s" % (
-                len(employees),
-                len(active_leaves),
-                db.get_setting('school_year', '2025/2026')
-            )
-        )
+        year = db.get_setting('school_year', '2025/2026')
+        
+        title = f"نظام تسيير الموظفين  —  إجمالي الموظفين: {len(employees)}  |  عطل مرضية جارية: {len(active_leaves)}  |  السنة الدراسية: {year}"
+        self.setWindowTitle(title)
 
     # ── Excel Operations ──
-
     def _import_excel(self):
         filepath, _ = QFileDialog.getOpenFileName(
             self, "استيراد من إكسل",
@@ -269,19 +189,21 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            imported, skipped, errors = excel_handler.import_employees(filepath)
-            msg = "تم استيراد %d موظف(ين) بنجاح.\n" % imported
+            imported, skipped, errors, updated = excel_handler.import_employees(filepath)
+            msg = f"تم استيراد {imported} موظف(ين) جديد(ين).\n"
+            if updated:
+                msg += f"تم تحديث {updated} موظف(ين) موجودين.\n"
             if skipped:
-                msg += "تم تخطي %d صف(وف).\n" % skipped
+                msg += f"تم تخطي {skipped} صف(وف).\n"
             if errors:
                 msg += "\nالأخطاء:\n" + "\n".join(errors[:10])
-
-            QMessageBox.information(self, "نتيجة الاستيراد", msg)
+            
+            InfoBar.success("نتيجة الاستيراد", msg, parent=self, duration=4000)
             self.employees_page.refresh_table()
-            self._update_statusbar()
+            self._update_status()
             self.home_page.refresh()
         except Exception as e:
-            QMessageBox.critical(self, "خطأ", "فشل الاستيراد:\n%s" % str(e))
+            InfoBar.error("خطأ", f"فشل الاستيراد:\n{str(e)}", parent=self, duration=4000)
 
     def _export_excel(self):
         filepath, _ = QFileDialog.getSaveFileName(
@@ -293,12 +215,9 @@ class MainWindow(QMainWindow):
 
         try:
             count = excel_handler.export_employees(filepath)
-            QMessageBox.information(
-                self, "نجاح",
-                "تم تصدير %d موظف(ين) بنجاح إلى:\n%s" % (count, filepath)
-            )
+            InfoBar.success("نجاح", f"تم تصدير {count} موظف(ين) بنجاح إلى:\n{filepath}", parent=self, duration=4000)
         except Exception as e:
-            QMessageBox.critical(self, "خطأ", "فشل التصدير:\n%s" % str(e))
+            InfoBar.error("خطأ", f"فشل التصدير:\n{str(e)}", parent=self, duration=4000)
 
     def _export_template(self):
         filepath, _ = QFileDialog.getSaveFileName(
@@ -310,14 +229,6 @@ class MainWindow(QMainWindow):
 
         try:
             excel_handler.export_template(filepath)
-            QMessageBox.information(
-                self, "نجاح",
-                "تم تصدير النموذج بنجاح إلى:\n%s" % filepath
-            )
+            InfoBar.success("نجاح", f"تم تصدير النموذج بنجاح إلى:\n{filepath}", parent=self, duration=4000)
         except Exception as e:
-            QMessageBox.critical(self, "خطأ", "فشل التصدير:\n%s" % str(e))
-
-    def _show_about(self):
-        """Navigate to the About page."""
-        # 8 is the index of the about_page (0-8)
-        self._on_nav_clicked(8)
+             InfoBar.error("خطأ", f"فشل التصدير:\n{str(e)}", parent=self, duration=4000)

@@ -69,7 +69,7 @@ class AboutPage(ScrollablePageWidget):
         # Features Section
         features_title = QLabel('<div align="right" dir="rtl">مميزات النظام 🌟</div>')
         features_title.setStyleSheet(" font-size: 20px; font-weight: bold; color: #1e293b; margin-top: 16px;")
-        self.layout.addWidget(features_title)
+        # self.layout.addWidget(features_title)
 
         features_card = Card()
         features_layout = QVBoxLayout(features_card)
@@ -89,7 +89,7 @@ class AboutPage(ScrollablePageWidget):
             f_lbl.setStyleSheet(" font-size: 14px; color: #334155; padding: 4px 0;")
             features_layout.addWidget(f_lbl)
 
-        self.layout.addWidget(features_card)
+        # self.layout.addWidget(features_card)
 
        
         self.layout.addStretch()

@@ -364,8 +364,8 @@ class EmployeeDialog(QDialog):
         self.range_label.setWordWrap(True)
         eval_layout.addWidget(self.range_label)
 
-        # ─ جدول السنوات الثلاث ─
-        grid_title = QLabel("النقاط المتحصل عليها خلال السنوات الثلاث السابقة:")
+        # ─ جدول السنوات الثلاث السابقة + السنة الحالية ─
+        grid_title = QLabel("النقاط المتحصل عليها خلال السنوات الثلاث السابقة + السنة الحالية:")
         grid_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #334155;")
         eval_layout.addWidget(grid_title)
 
@@ -373,8 +373,9 @@ class EmployeeDialog(QDialog):
         settings = db.get_all_settings()
         current_year = settings.get("school_year", "2025/2026")
         prev_years = get_previous_years(current_year, 3)
+        all_years = prev_years + [current_year]  # 3 سنوات سابقة + السنة الحالية
 
-        # Build a grid for 3 years
+        # Build a grid for 4 years (3 previous + current)
         grid_frame = QFrame()
         grid_frame.setStyleSheet("""
             QFrame { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; }
@@ -394,13 +395,20 @@ class EmployeeDialog(QDialog):
             grid.addWidget(lbl, 0, c)
 
         self._eval_widgets = []
-        for r, yr in enumerate(prev_years):
+        for r, yr in enumerate(all_years):
             row = r + 1
+            is_current = (yr == current_year)
 
             # السنة
             yr_lbl = QLabel(yr)
             yr_lbl.setAlignment(Qt.AlignCenter)
-            yr_lbl.setStyleSheet("font-weight: bold; font-size: 13px; color: #1e293b;")
+            if is_current:
+                yr_lbl.setStyleSheet(
+                    "font-weight: bold; font-size: 13px; color: #fff; "
+                    "background: #3b82f6; border-radius: 4px; padding: 2px 6px;"
+                )
+            else:
+                yr_lbl.setStyleSheet("font-weight: bold; font-size: 13px; color: #1e293b;")
             grid.addWidget(yr_lbl, row, 0)
 
             # النقطة التربوية — min=-0.5 (empty), max=20, step=0.5
@@ -456,6 +464,26 @@ class EmployeeDialog(QDialog):
             self._eval_widgets.append((yr, edu_spin, edu_date, adm_spin, adm_date, remark_lbl))
 
         eval_layout.addWidget(grid_frame)
+
+        # ─ ملاحظة المدير ─
+        note_title = QLabel("ملاحظة المدير:")
+        note_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #334155; margin-top: 8px;")
+        eval_layout.addWidget(note_title)
+
+        from PyQt5.QtWidgets import QTextEdit
+        self.director_note_input = QTextEdit()
+        self.director_note_input.setLayoutDirection(Qt.RightToLeft)
+        self.director_note_input.setPlaceholderText("ملاحظة المدير حول أداء الموظف (اختياري)...")
+        self.director_note_input.setMaximumHeight(80)
+        self.director_note_input.setStyleSheet("""
+            QTextEdit {
+                font-size: 13px; font-family: 'Amiri';
+                border: 1px solid #cbd5e1; border-radius: 8px;
+                padding: 8px; background: #fff;
+            }
+            QTextEdit:focus { border-color: #3b82f6; background: #eff6ff; }
+        """)
+        eval_layout.addWidget(self.director_note_input)
 
         # ─ زر الطباعة الفردية ─
         print_row = QHBoxLayout()
@@ -675,12 +703,15 @@ class EmployeeDialog(QDialog):
             pass
 
     def _load_evaluations(self):
-        """ملء SpinBoxes الـ3 سنوات من قاعدة البيانات."""
+        """ملء SpinBoxes الـ4 سنوات + ملاحظة المدير من قاعدة البيانات."""
         if not self.employee:
             return
         emp_id = self.employee["id"]
         evals = db.get_evaluations_for_employee(emp_id)
         evals_dict = {ev["school_year"]: ev for ev in evals}
+
+        settings = db.get_all_settings()
+        current_year = settings.get("school_year", "2025/2026")
 
         for yr, edu_spin, edu_date, adm_spin, adm_date, remark_lbl in self._eval_widgets:
             ev = evals_dict.get(yr)
@@ -704,6 +735,11 @@ class EmployeeDialog(QDialog):
                 adm_spin.setValue(adm_spin.minimum())  # empty
 
             adm_date.setText((ev.get("eval_date") or "").replace("-", "/"))
+
+            # ملاحظة المدير — نحمّلها من السنة الحالية فقط
+            if yr == current_year and hasattr(self, 'director_note_input'):
+                note = ev.get("director_note") or ""
+                self.director_note_input.setPlainText(note)
 
     # ══════════════════════════════════════════════════════════════════════
     #  SAVE
@@ -758,6 +794,10 @@ class EmployeeDialog(QDialog):
             degree = 1
         base_min, _ = compute_score_limits(degree)
 
+        settings = db.get_all_settings()
+        current_year = settings.get("school_year", "2025/2026")
+        director_note = self.director_note_input.toPlainText().strip() if hasattr(self, 'director_note_input') else ""
+
         records = []
         for yr, edu_spin, edu_date_w, adm_spin, adm_date_w, remark_lbl in self._eval_widgets:
             edu_val = edu_spin.value()
@@ -772,7 +812,7 @@ class EmployeeDialog(QDialog):
             admin_score = adm_val if adm_val >= base_min else None
             remark = get_remark(adm_val, base_min) if admin_score else ""
 
-            records.append({
+            rec = {
                 "employee_id": emp_id,
                 "school_year": yr,
                 "admin_score": admin_score if admin_score else 0,
@@ -780,7 +820,9 @@ class EmployeeDialog(QDialog):
                 "edu_date": edu_date_w.text().strip(),
                 "eval_date": adm_date_w.text().strip().replace("/", "-"),
                 "remark": remark,
-            })
+                "director_note": director_note if yr == current_year else "",
+            }
+            records.append(rec)
         return records
 
     # ══════════════════════════════════════════════════════════════════════
@@ -788,13 +830,19 @@ class EmployeeDialog(QDialog):
     # ══════════════════════════════════════════════════════════════════════
 
     def _print_individual(self):
-        """طباعة الاستمارة باستخدام القيم الحالية في الواجهة."""
+        """حفظ البيانات + إغلاق النافذة + طباعة الاستمارة."""
         if not self.employee:
             QMessageBox.warning(self, "تنبيه", "يرجى حفظ الموظف أولاً ثم طباعة الاستمارة.")
             return
 
+        # ─ 1. التحقق من صحة الاسم ─
+        last = self.last_name_input.text().strip()
+        first = self.first_name_input.text().strip()
+        if not last and not first:
+            QMessageBox.warning(self, "تنبيه", "يرجى إدخال اسم الموظف على الأقل")
+            return
+
         emp_data = self.get_data()
-        # ندمج الـ id من الموظف الأصلي
         emp_data["id"] = self.employee["id"]
 
         settings = db.get_all_settings()
@@ -824,7 +872,7 @@ class EmployeeDialog(QDialog):
             }
             evals.append(ev)
 
-        # نبحث عن النقطة الإدارية في أحدث سنة (آخر عنصر)
+        # نبحث عن النقطة الإدارية في السنة الحالية (آخر عنصر)
         if self._eval_widgets:
             _, _, _, last_adm, _, last_remark_lbl = self._eval_widgets[-1]
             last_val = last_adm.value()
@@ -832,6 +880,10 @@ class EmployeeDialog(QDialog):
                 current_adm_score = last_val
                 current_remark = get_remark(last_val, base_min)
 
+        # ملاحظة المدير
+        director_note = self.director_note_input.toPlainText().strip() if hasattr(self, 'director_note_input') else ""
+
+        # ─ 2. توليد HTML ─
         html = EvaluationPrinter.generate_html(
             employee=emp_data,
             evals=evals,
@@ -839,11 +891,14 @@ class EmployeeDialog(QDialog):
             current_score=current_adm_score,
             current_year=current_year,
             current_remark=current_remark,
+            director_note=director_note,
         )
 
-        from pdf_generator_v2 import AdvancedPdfPreviewDialog
-        dlg = AdvancedPdfPreviewDialog(html_content=html, parent=self, margins_mm=(15, 15, 15, 15))
-        dlg.exec_()
+        # ─ 3. حفظ HTML لإظهاره بعد إغلاق النافذة ─
+        self._pending_print_html = html
+
+        # ─ 4. حفظ البيانات وإغلاق النافذة ─
+        self.accept()
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1050,6 +1105,15 @@ class EmployeesPage(QWidget):
                 db.upsert_evaluation(rec)
             self.refresh_table()
 
+            # ─ إذا طُلبت الطباعة → نعرض المعاينة بعد الحفظ والإغلاق ─
+            print_html = getattr(dialog, '_pending_print_html', None)
+            if print_html:
+                from pdf_generator_v2 import AdvancedPdfPreviewDialog
+                dlg = AdvancedPdfPreviewDialog(
+                    html_content=print_html, parent=self, margins_mm=(15, 15, 15, 15)
+                )
+                dlg.exec_()
+
     def _open_evaluation(self, emp_id):
         """يفتح نافذة تعديل الموظف مباشرةً على تبويب التقييم."""
         self._edit_employee(emp_id, initial_tab=2)
@@ -1182,6 +1246,7 @@ class EmployeesPage(QWidget):
 
             cur_score = None
             cur_remark = ""
+            cur_dir_note = ""
             for ev in evals:
                 ev_d = dict(ev) if not isinstance(ev, dict) else ev
                 if ev_d["school_year"] == current_year:
@@ -1189,12 +1254,13 @@ class EmployeesPage(QWidget):
                     if s and float(s) > 0:
                         cur_score = float(s)
                         cur_remark = ev_d.get("remark") or ""
+                    cur_dir_note = ev_d.get("director_note") or ""
                     break
 
             html = EvaluationPrinter.generate_html(
                 employee=emp_dict, evals=evals, settings=settings,
                 current_score=cur_score, current_year=current_year,
-                current_remark=cur_remark,
+                current_remark=cur_remark, director_note=cur_dir_note,
             )
             pages.append(html)
             progress.setValue(i + 1)

@@ -21,7 +21,8 @@ class DashboardCard(QFrame):
         super().__init__(parent)
         self.setObjectName("dash_card")
         self.setLayoutDirection(Qt.RightToLeft)
-        self.setMinimumHeight(140)
+        self.setMinimumHeight(100)
+        self.setMaximumHeight(120)
         
         self.setStyleSheet(f"""
             QFrame#dash_card {{
@@ -40,12 +41,12 @@ class DashboardCard(QFrame):
         self.setGraphicsEffect(effect)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setContentsMargins(18, 14, 18, 14)
         
         # Top Row: Title + Icon
         top_row = QHBoxLayout()
         title_lbl = QLabel(title)
-        title_lbl.setStyleSheet("font-size: 16px; font-weight: bold; background: transparent; color: rgba(255,255,255,0.9);")
+        title_lbl.setStyleSheet("font-size: 14px; font-weight: bold; background: transparent; color: rgba(255,255,255,0.9);")
         
         icon_lbl = QLabel()
         icon_lbl.setPixmap(get_icon(icon_name, color="#ffffff").pixmap(32, 32))
@@ -63,7 +64,7 @@ class DashboardCard(QFrame):
         # Bottom Row: Value - explicitly aligned right in RTL
         self.val_lbl = QLabel(str(value))
         self.val_lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.val_lbl.setStyleSheet("font-size: 42px; font-weight: bold; background: transparent; color: white;")
+        self.val_lbl.setStyleSheet("font-size: 30px; font-weight: bold; background: transparent; color: white;")
         layout.addWidget(self.val_lbl)
 
     def set_value(self, value):

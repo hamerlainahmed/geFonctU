@@ -201,7 +201,11 @@ class SettingsPage(ScrollablePageWidget):
             if reply == QMessageBox.Yes:
                 try:
                     archive_manager.restore_school_year(selected_year)
-                    QMessageBox.information(self, "نجاح", "تم استرجاع السنة القديمة بنجاح.")
+                    QMessageBox.information(
+                        self, "نجاح",
+                        "تم استرجاع السنة القديمة بنجاح.\n\n"
+                        "⚠️ يرجى إعادة تشغيل البرنامج لتحديث جميع الواجهات."
+                    )
                     if self.window() and hasattr(self.window(), '_update_statusbar'):
                         self.window()._update_statusbar()
                 except Exception as e:
@@ -209,13 +213,23 @@ class SettingsPage(ScrollablePageWidget):
         else:
             reply = QMessageBox.question(
                 self, "فتح سنة جديدة", 
-                f"هل أنت متأكد أنك تريد إغلاق السنة الحالية وبدء سنة '{selected_year}'؟\n\nسيتم حفظ نسخة في الأرشيف وتفريغ سجلات الغيابات الحالية.",
+                f"هل أنت متأكد أنك تريد إغلاق السنة الحالية '{current_year}' وبدء سنة '{selected_year}'؟\n\n"
+                "• سيتم حفظ نسخة كاملة في الأرشيف\n"
+                "• سيتم تفريغ سجلات الغيابات والاستفسارات\n"
+                "• نقاط التقييم للسنة الحالية ستُحفظ وتظهر كنقاط السنة السابقة\n"
+                "• نقاط السنة الجديدة ستكون فارغة",
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.Yes:
                 try:
                     archive_manager.start_new_school_year(selected_year)
-                    QMessageBox.information(self, "نجاح", "تم إنشاء السنة الدراسية الجديدة بنجاح وأُرشفة البيانات الأساسية.")
+                    QMessageBox.information(
+                        self, "نجاح",
+                        f"✅ تم إنشاء السنة الدراسية '{selected_year}' بنجاح!\n\n"
+                        f"• نقاط التقييم للسنة '{current_year}' محفوظة\n"
+                        "• نقاط السنة الجديدة فارغة وجاهزة للإدخال\n\n"
+                        "⚠️ يرجى إعادة تشغيل البرنامج لتحديث جميع الواجهات."
+                    )
                     if self.window() and hasattr(self.window(), '_update_statusbar'):
                         self.window()._update_statusbar()
                 except Exception as e:
