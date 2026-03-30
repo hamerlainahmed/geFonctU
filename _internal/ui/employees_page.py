@@ -51,7 +51,7 @@ class _NullableDateEdit(QDateEdit):
     - .setText() parses date strings or clears if empty.
     """
 
-    _NULL = QDate(2000, 1, 1)
+    _NULL = QDate(1900, 1, 1)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -76,6 +76,10 @@ class _NullableDateEdit(QDateEdit):
             cal = self.calendarWidget()
             if cal:
                 today = QDate.currentDate()
+                if today > cal.maximumDate():
+                    today = cal.maximumDate()
+                elif today < cal.minimumDate():
+                    today = cal.minimumDate()
                 cal.setCurrentPage(today.year(), today.month())
         super().showPopup()
 
@@ -215,7 +219,8 @@ class EmployeeDialog(QDialog):
         self.maiden_name_input = ArabicLineEdit("اللقب الأصلي للمتزوجات")
         form.addRow("اللقب الأصلي:", self.maiden_name_input)
 
-        self.birth_date = ArabicDateEdit()
+        self.birth_date = _NullableDateEdit()
+        self.birth_date.setToolTip("اضغط Delete لمسح التاريخ")
         form.addRow("تاريخ الميلاد:", self.birth_date)
 
         self.birth_place_input = ArabicLineEdit("مكان الميلاد")
@@ -229,6 +234,9 @@ class EmployeeDialog(QDialog):
 
         self.national_id_input = ArabicLineEdit("رقم البطاقة الوطنية")
         form.addRow("رقم التعريف:", self.national_id_input)
+        
+        self.social_security_input = ArabicLineEdit("رقم الضمان الاجتماعي")
+        form.addRow("رقم الضمان الاجتماعي:", self.social_security_input)
 
         self.phone_input = ArabicLineEdit("رقم الهاتف")
         form.addRow("الهاتف:", self.phone_input)
@@ -444,6 +452,34 @@ class EmployeeDialog(QDialog):
             # تاريخ النقطة الإدارية
             adm_date = _NullableDateEdit()
             adm_date.setToolTip("اضغط Delete لمسح التاريخ")
+            
+            # تقييد تاريخ النقطة الإدارية ضمن السنة الدراسية
+            try:
+                y1 = int(yr.split("/")[0])
+                y2 = y1 + 1
+                min_d = QDate(y1, 1, 1)
+                max_d = QDate(y2, 8, 31)
+                
+                cal = adm_date.calendarWidget()
+                if cal:
+                    cal.setMinimumDate(min_d)
+                    cal.setMaximumDate(max_d)
+                    
+                adm_date._min_valid = min_d
+                adm_date._max_valid = max_d
+                
+                def validate_date(target=adm_date):
+                    if not target.is_null():
+                        d = target.date()
+                        if d < target._min_valid:
+                            target.setDate(target._min_valid)
+                        elif d > target._max_valid:
+                            target.setDate(target._max_valid)
+                            
+                adm_date.editingFinished.connect(validate_date)
+            except Exception:
+                pass
+
             grid.addWidget(adm_date, row, 4)
 
             # الملاحظة — تتحدث تلقائياً
@@ -654,6 +690,7 @@ class EmployeeDialog(QDialog):
             self.maiden_name_input.setText(emp["maiden_name"] or "")
         except (IndexError, KeyError):
             pass
+        self.birth_date.setText(emp["birth_date"] or "")
         try:
             self.birth_place_input.setText(emp["birth_place"] or "")
         except (IndexError, KeyError):
@@ -668,6 +705,10 @@ class EmployeeDialog(QDialog):
         except (IndexError, KeyError):
             pass
         self.national_id_input.setText(emp["national_id"] or "")
+        try:
+            self.social_security_input.setText(emp["social_security"] or "")
+        except KeyError:
+            pass
         self.phone_input.setText(emp["phone"] or "")
         self.address_input.setText(emp["address"] or "")
 
@@ -759,7 +800,7 @@ class EmployeeDialog(QDialog):
             "last_name": self.last_name_input.text().strip(),
             "first_name": self.first_name_input.text().strip(),
             "maiden_name": self.maiden_name_input.text().strip(),
-            "birth_date": self.birth_date.date().toString("yyyy-MM-dd"),
+            "birth_date": self.birth_date.text().replace("/", "-"),
             "birth_place": self.birth_place_input.text().strip(),
             "family_status": self.family_status_combo.currentText().strip(),
             "grade": self.grade_combo.currentText().strip(),
@@ -768,10 +809,11 @@ class EmployeeDialog(QDialog):
             "degree": self.degree_input.text().strip(),
             "effective_date": self.effective_date.text().replace("/", "-"),
             "diploma": self.diploma_input.text().strip(),
-            "diploma_date": self.diploma_date_input.text().strip(),
+            "diploma_date": self.diploma_date_input.text().replace("/", "-"),
             "phone": self.phone_input.text().strip(),
             "address": self.address_input.text().strip(),
             "national_id": self.national_id_input.text().strip(),
+            "social_security": self.social_security_input.text().strip(),
             "account_number": self.account_number_input.text().strip(),
             "account_key": self.account_key_input.text().strip(),
             "notes": "",

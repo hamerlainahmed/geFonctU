@@ -38,6 +38,7 @@ class MainWindow(MSFluentWindow):
         # Initialize UI parts
         self._init_pages()
         self._build_navigation()
+        self._customize_nav_buttons()
 
         # Connect signals for status updates
         self.employees_page.employee_count_changed.connect(self._update_status)
@@ -120,12 +121,14 @@ class MainWindow(MSFluentWindow):
         """Assemble the sidebar Navigation Interface."""
         # Top pages
         self.addSubInterface(self.home_page, FIF.HOME, "الرئيسية", position=NavigationItemPosition.TOP)
-        self.addSubInterface(self.employees_page, FIF.PEOPLE, "إدارة الموظفين", position=NavigationItemPosition.TOP)
-        self.addSubInterface(self.sick_leave_page, FIF.HEART, "العطل المرضية", position=NavigationItemPosition.TOP)
-        self.addSubInterface(self.absences_page, FIF.CALENDAR, "الغيابات والتأخرات", position=NavigationItemPosition.TOP)
-        self.addSubInterface(self.inquiries_page, FIF.HELP, "الاستفسارات", position=NavigationItemPosition.TOP)
-        self.addSubInterface(self.deductions_page, FIF.CUT, "الاقتطاعات", position=NavigationItemPosition.TOP)
-        self.addSubInterface(self.archive_page, FIF.FOLDER, "الأرشيف والسنوات", position=NavigationItemPosition.TOP)
+        
+        # Scrollable pages
+        self.addSubInterface(self.employees_page, FIF.PEOPLE, "إدارة الموظفين", position=NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.sick_leave_page, FIF.HEART, "العطل المرضية", position=NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.absences_page, FIF.CALENDAR, "الغيابات والتأخرات", position=NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.inquiries_page, FIF.HELP, "الاستفسارات", position=NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.deductions_page, FIF.CUT, "الاقتطاعات", position=NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.archive_page, FIF.FOLDER, "الأرشيف والسنوات", position=NavigationItemPosition.SCROLL)
         
         # Bottom Actions 
         # self.navigationInterface.addItem(
@@ -169,7 +172,91 @@ class MainWindow(MSFluentWindow):
         
         # Set default active
         self.navigationInterface.setCurrentItem(self.home_page.objectName())
+
+    def _customize_nav_buttons(self):
+        """تخصيص أزرار القائمة الجانبية لتكون أوسع وأكثر ارتفاعاً لمنع تداخل/اقتطاع النص العربي."""
+        from PyQt5.QtCore import QRect, QRectF
+        from PyQt5.QtGui import QPainter
+        from PyQt5.QtCore import Qt as _Qt
+        from qfluentwidgets.components.navigation.navigation_bar import NavigationBarPushButton
+        from qfluentwidgets.common.icon import drawIcon, FluentIconBase
+        from qfluentwidgets.common.config import isDarkTheme
+        from qfluentwidgets.common.color import autoFallbackThemeColor
         
+        # Make the navigation bar wider to fit Arabic text
+        self.navigationInterface.setFixedWidth(106)
+        
+        # Adjust layout spacing to prevent overlapping
+        self.navigationInterface.topLayout.setSpacing(4)
+        self.navigationInterface.bottomLayout.setSpacing(4)
+        self.navigationInterface.scrollLayout.setSpacing(4)
+        self.navigationInterface.topLayout.setContentsMargins(4, 10, 4, 0)
+        self.navigationInterface.bottomLayout.setContentsMargins(4, 0, 4, 10)
+        self.navigationInterface.scrollLayout.setContentsMargins(4, 5, 4, 5)
+        
+        # إظهار شريط التمرير بشكل دائم ليكون واضحا للمستخدم أنه يمكن التمرير
+        self.navigationInterface.scrollArea.setVerticalScrollBarPolicy(_Qt.ScrollBarAlwaysOn)
+        
+        # تلوين مسار شريط التمرير قليلاً لتمييز منطقة التمرير
+        self.navigationInterface.scrollArea.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+            "QScrollBar:vertical { background: rgba(0, 0, 0, 0.03); width: 8px; border-radius: 4px; }"
+        )
+        
+        def _custom_drawText(self_btn, painter: QPainter):
+            """رسم النص مع التفاف الكلمات (word wrap) ومحاذاة في الوسط."""
+            if self_btn.isSelected and not self_btn._isSelectedTextVisible:
+                return
+            
+            if self_btn.isSelected or self_btn.isAboutSelected:
+                painter.setPen(autoFallbackThemeColor(self_btn.lightSelectedColor, self_btn.darkSelectedColor))
+            else:
+                painter.setPen(_Qt.white if isDarkTheme() else _Qt.black)
+            
+            font = self_btn.font()
+            font.setPointSize(9)
+            painter.setFont(font)
+            # Text starts at y=34, spanning 40 pixels vertically
+            rect = QRect(2, 34, self_btn.width() - 4, 40)
+            painter.drawText(rect, _Qt.AlignHCenter | _Qt.AlignTop | _Qt.TextWordWrap, self_btn.text())
+        
+        def _custom_drawIcon(self_btn, painter: QPainter):
+            """رسم الأيقونة في الوسط (مع تعديل المحاذاة)."""
+            if (self_btn.isPressed or not self_btn.isEnter) and not (self_btn.isSelected or self_btn.isAboutSelected):
+                painter.setOpacity(0.6)
+            if not self_btn.isEnabled():
+                painter.setOpacity(0.4)
+            
+            # Center icon horizontally, start slightly higher
+            iw, ih = 22, 22
+            x = (self_btn.width() - iw) / 2
+            if self_btn._isSelectedTextVisible:
+                rect = QRectF(x, 8, iw, ih)
+            else:
+                rect = QRectF(x, 8 + self_btn.iconAni.offset, iw, ih)
+            
+            selectedIcon = self_btn._selectedIcon or self_btn._icon
+            if isinstance(selectedIcon, FluentIconBase) and (self_btn.isSelected or self_btn.isAboutSelected):
+                color = autoFallbackThemeColor(self_btn.lightSelectedColor, self_btn.darkSelectedColor)
+                selectedIcon.render(painter, rect, fill=color.name())
+            elif self_btn.isSelected or self_btn.isAboutSelected:
+                drawIcon(selectedIcon, painter, rect)
+            else:
+                drawIcon(self_btn._icon, painter, rect)
+        
+        def _custom_indicatorRect(self_btn):
+            """Adjust indicator position for wider/taller buttons."""
+            return QRectF(0, 18, 4, 30)
+        
+        # Resize all navigation buttons and monkey-patch their draw methods
+        for button in self.navigationInterface.findChildren(NavigationBarPushButton):
+            button.setFixedSize(98, 76)
+            # Bind methods
+            import types
+            button._drawText = types.MethodType(_custom_drawText, button)
+            button._drawIcon = types.MethodType(_custom_drawIcon, button)
+            button.indicatorRect = types.MethodType(_custom_indicatorRect, button)
+
     def _update_status(self):
         # Update the main window title for status
         employees = db.get_all_employees()
@@ -181,6 +268,17 @@ class MainWindow(MSFluentWindow):
 
     # ── Excel Operations ──
     def _import_excel(self):
+        msg = ("يمكنك استيراد قاعدة بيانات الموظفين من الملفات التالية:\n"
+               "1. ملف وزارة التربية الوطنية المتواجد في الرقمنة (.xls)\n"
+               "2. ملف بيانات المستخدمين (سالمي طاهر) (.xlsx)\n"
+               "3. ملف بطاقة المعلومات للمستخدمين (سالمي طاهر) (.xlsx)\n"
+               "سيقوم البرنامج بتحديث الموظفين الموجودين بناءً على الرقم الوظيفي آلياً\n")
+        reply = QMessageBox.information(
+            self, "تعليمات استيراد الإكسل", msg, QMessageBox.Ok | QMessageBox.Cancel
+        )
+        if reply == QMessageBox.Cancel:
+            return
+            
         filepath, _ = QFileDialog.getOpenFileName(
             self, "استيراد من إكسل",
             "", "Excel Files (*.xlsx *.xls)"

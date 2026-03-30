@@ -594,6 +594,17 @@ class AbsencesPage(QWidget):
         dialog = AdvancedPdfPreviewDialog(html_content=html, parent=self)
         dialog.exec_()
 
+    def _delete_absence(self, abs_id):
+        reply = QMessageBox.question(
+            self, "تأكيد الحذف",
+            "هل أنت متأكد من حذف هذا السجل نهائياً؟\nسيتم حذفه من سجل الغيابات.",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            db.delete_absence(abs_id)
+            QMessageBox.information(self, "نجاح", "تم حذف السجل بنجاح.")
+            self.refresh()
+
     def refresh(self):
         self._refresh_absences()
         self._refresh_monthly_stats()
@@ -700,14 +711,8 @@ class AbsencesPage(QWidget):
             """)
             
 
-            inquiry_action = menu.addAction(get_icon("inquiry", color="#475569"), "طباعة استفسار")
-            inquiry_action.triggered.connect(lambda checked, aid=abs_id: self._print_inquiry(aid))
-
-            deduct_action = menu.addAction(get_icon("salary", color="#475569"), "طباعة خصم الراتب / المردودية")
-            deduct_action.triggered.connect(lambda checked, aid=abs_id: self._print_salary_deduction(aid))
-
-            warn_action = menu.addAction(get_icon("notification", color="#475569"), "طباعة تنبيه")
-            warn_action.triggered.connect(lambda checked, aid=abs_id: self._print_warning(aid))
+            delete_action = menu.addAction(get_icon("delete", color="#ef4444"), "حذف")
+            delete_action.triggered.connect(lambda checked, aid=abs_id: self._delete_absence(aid))
             
             options_btn.setMenu(menu)
             al.addWidget(options_btn)

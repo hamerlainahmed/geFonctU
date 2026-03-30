@@ -218,7 +218,7 @@ class DocumentsPage(QWidget):
 
         elif doc_type == "محضر تنصيب":
             body = """
-            <h2 style="text-align:center; margin:20px 0;">محضر تنصيب</h2>
+            <h2 style="text-align:center; margin:20px 0;">محضر تنصيب 2</h2>
             <p style="font-size:14px; line-height:2;">
                 نحن الممضون أسفله، مدير %(school)s، نشهد أن السيد(ة) المذكور(ة) أعلاه،
                 <b>%(name)s</b>، بصفته(ها) <b>%(grade)s</b>%(subject)s،

@@ -909,25 +909,25 @@ class SickLeavePage(QWidget):
             .footer-table { width: 100%%; font-size: 24px; font-weight: bold; margin-top: 80px; }
         </style></head>
         <body dir="rtl">
-         <table width="100%%" dir="rtl" style="margin-top: -2x; margin-bottom: 5px;line-height: 0.8;">
+         <table width="100%%" dir="rtl" style="margin-bottom: 5px;line-height: 0.8;">
                 <tr>
-                    <td style="text-align:center;padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:center;padding:0px; font-size: 18px; font-weight: bold; line-height: 0.8;">
                        الجمهورية الجزائرية الديمقراطية الشعبية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:center;padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:center;padding:0px; font-size: 18px; font-weight: bold; line-height: 0.8;">
                      وزارة التربية الوطنية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:left;padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:left;padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8;">
                         مديرية التربية لولاية %(wilaya)s
                       
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:left;padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:left;padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8;">
                        
                         %(school_display)s
                     </td>
@@ -999,6 +999,17 @@ class SickLeavePage(QWidget):
         from pdf_generator_v2 import AdvancedPdfPreviewDialog
         dialog = AdvancedPdfPreviewDialog(html_content=html, parent=self, landscape=landscape)
         dialog.exec_()
+
+    def _delete_sick_leave(self, sl_id):
+        reply = QMessageBox.question(
+            self, "تأكيد الحذف",
+            "هل أنت متأكد من حذف هذه العطلة المرضية؟\nسيتم حذف الاستخلاف المرتبط بها (إن وجد).",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            db.delete_sick_leave(sl_id)
+            QMessageBox.information(self, "نجاح", "تم حذف العطلة المرضية بنجاح.")
+            self.refresh()
 
     def _end_sick_leave(self, sl_id):
         """End a sick leave and generate resume work document."""
@@ -1115,25 +1126,25 @@ class SickLeavePage(QWidget):
             .info-table th, .info-table td { border: 1px solid black!important; padding: 2px; text-align: center; font-size: 14px;  }
         </style></head>
         <body dir="rtl">
-          <table width="100%%" dir="rtl" style="margin-top: -2x; margin-bottom: 5px;line-height: 0.8;">
+          <table width="100%%" dir="rtl" style="margin-bottom: 5px;line-height: 0.8;">
                 <tr>
-                    <td style="text-align:center;padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:center;padding:0px; font-size: 18px; font-weight: bold; line-height: 0.8;">
                        الجمهورية الجزائرية الديمقراطية الشعبية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:center;padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:center;padding:0px; font-size: 18px; font-weight: bold; line-height: 0.8;">
                      وزارة التربية الوطنية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:left;padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:left;padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8;">
                         مديرية التربية لولاية %(wilaya)s
                       
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:left;padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td style="text-align:left;padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8;">
                        
                         %(school_display)s
                     </td>
@@ -1153,37 +1164,37 @@ class SickLeavePage(QWidget):
             </div>
             <table style="width: 100%%; border-collapse: collapse; margin: 5px;line-height: 0.9;">
                 <tr>
-                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 14px;">%(emp_name)s</td>
-                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 14px;">اللقب و الاسم:</td>
+                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 16px;">%(emp_name)s</td>
+                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 16px;">اللقب و الاسم:</td>
                     
                 </tr>
                 <tr>
-                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 14px;">%(subject_line)s</td>
-                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 14px;">التخصص:</td>
+                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 16px;">%(subject_line)s</td>
+                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 16px;">التخصص:</td>
                     
                 </tr>
                 <tr>
-                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 14px;">%(school)s</td>
-                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 14px;">مؤسسة العمل:</td>
+                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 16px;">%(school)s</td>
+                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 16px;">مؤسسة العمل:</td>
                     
                 </tr>
                 <tr>
-                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 14px;">%(emp_grade)s</td>
-                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 14px;">الصفة:</td>
+                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 16px;">%(emp_grade)s</td>
+                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 16px;">الصفة:</td>
                     
                 </tr>
                 <tr>
-                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 14px;">%(resume_date)s</td>
-                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 14px;">تاريخ الاستئناف:</td>
+                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 16px;">%(resume_date)s</td>
+                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 16px;">تاريخ الاستئناف:</td>
                     
                 </tr>
                 <tr>
-                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 14px;">جزائرية</td>   
-                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 14px;">الجنسية:</td>
+                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 16px;">جزائرية</td>   
+                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 16px;">الجنسية:</td>
                 </tr>
                   <tr>
-                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 14px;"></td>   
-                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 14px;">الملاحظة:</td>
+                <td style="width: 70%%; padding: 2px; text-align: left; font-size: 16px;"></td>   
+                <td dir="rtl" style="width: 30%%; padding: 2px; text-align: left; font-size: 16px;">الملاحظة:</td>
                 </tr>
             </table>
             
@@ -1237,11 +1248,11 @@ class SickLeavePage(QWidget):
         <head><style>
             body { font-family: 'Amiri', 'Traditional Arabic', serif;
                    direction: rtl; text-align: right; margin: 20px; line-height: 0.9; }
-            .header-text { font-size: 16px; font-weight: bold; text-align: center; margin: 2px 0; }
-            .header-right { font-size: 14px; font-weight: bold; text-align: right; margin-top: 10px; margin-bottom: 30px; line-height: 0.9; }
-            .recipient-block { font-size: 16px; font-weight: bold; text-align: right; margin-right: 20px; margin-bottom: 40px; line-height: 0.9; }
+            .header-text { font-size: 18px; font-weight: bold; text-align: center; margin: 2px 0; }
+            .header-right { font-size: 18px; font-weight: bold; text-align: right; margin-top: 10px; margin-bottom: 30px; line-height: 0.9; }
+            .recipient-block { font-size: 16px; font-weight: bold; text-align: right; margin-right: 20px; margin-bottom: 40px; line-height: 1.2; }
             .subject-title { font-size: 20px; font-weight: bold; margin: 30px 40px; text-align: left; }
-            .content-p { font-size: 18px; font-weight: bold; margin: 10px 20px; line-height: 0.9; text-align: left; text-indent: 40px; }
+            .content-p { font-size: 18px; font-weight: bold; margin:5px; line-height: 0.9; text-align: left; text-indent: 40px; }
             h2 { text-align: center; color: #1a1a1a; margin: 24px 0; font-weight: bold; font-size: 24px; text-decoration: underline; }
             .info-table { border-collapse: collapse; width: 100%%; margin: 5px; }
             .info-table th, .info-table td { border: 1px solid black !important; padding: 2px; font-size: 14px; font-weight: bold; text-align: right; line-height: 0.9; }
@@ -1250,7 +1261,7 @@ class SickLeavePage(QWidget):
         <body dir="rtl">
             <div class="header-text">الجمهورية الجزائرية الديمقراطية الشعبية</div>
             <div class="header-text">وزارة التربية الوطنية</div>
-            <div style="text-align: left;">
+            <div style="font-size: 18px;  text-align: left;">
                 مديرية التربية لولاية %(wilaya)s<br/>
                 %(school_display)s
             </div>
@@ -1277,7 +1288,8 @@ class SickLeavePage(QWidget):
             <p class="content-p">
                 نعلم سيادتكم أن الأستـــاذ(ة) : %(sub_name)s مستخلفــ(ة) علــى منصــب عطلــة مرضيــة (مادة %(teacher_subject)s) أنهــــت إستخلافهـــا بتاريــــخ %(end_date)s.
             </p>
-
+<tr>
+</tr>
                <tr>
                 <td style="font-size:16px; font-weight: bold; text-align:center; width:40%%;">
                         %(school_address)s في %(today)s
@@ -1285,7 +1297,7 @@ class SickLeavePage(QWidget):
                 <td style="text-align:center; width:60%%;"></td>
             </tr>
             <tr>
-                <td style="font-size:16px; font-weight: bold; text-align:center; width:40%%; padding-top: 10px;">
+                <td style="font-size:18px; font-weight: bold; text-align:center; width:40%%; padding-top: 10px;">
                         المدير
                 </td>
                 <td style="text-align:center; width:60%%;"></td>
@@ -1294,75 +1306,81 @@ class SickLeavePage(QWidget):
 
             <!-- Page Break for Information Card -->
             <div style="page-break-before: always;"></div>
-            <table width="100%%" dir="rtl" style="margin-top: 15px; margin-bottom: 5px;">
+            <table width="100%%" dir="rtl" style="margin-top: 5px; margin-bottom: 5px;">
                 <tr>
-                    <td style="text-align:center; font-size: 14px; font-weight: bold; line-height: 0.9;">
+                    <td style="text-align:center; font-size: 18px; font-weight: bold; line-height: 0.9;">
                        الجمهورية الجزائرية الديمقراطية الشعبية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:center; font-size: 14px; font-weight: bold; line-height: 0.9;">
+                    <td style="text-align:center; font-size: 18px; font-weight: bold; line-height: 0.9;">
                      وزارة التربية الوطنية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:left; font-size: 14px; font-weight: bold; line-height: 0.9;">
+                    <td style="text-align:left; font-size: 18px; font-weight: bold; line-height: 0.9;">
                         مديرية التربية لولاية %(wilaya)s
                       
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:left; font-size: 14px; font-weight: bold; line-height: 0.9;">
+                    <td style="text-align:left; font-size: 18px; font-weight: bold; line-height: 0.9;">
+                       
+                        %(school_display)s
+                    </td>
+                </tr>
+                 <tr>
+                    <td style="text-align:left; font-size: 18px; font-weight: bold; line-height: 0.9;">
                        
                         %(school_display)s
                     </td>
                 </tr>
                 <tr>
-                <td style="text-align:center; font-size: 14px; font-weight: bold; line-height: 0.9;">
+                <td style="text-align:center; font-size: 22px; font-weight: bold; line-height: 0.9;">
                   <h2>بطاقة معلومات الخاصة بالأساتذة المتعاقدين</h2>
                 </td>
                 </tr>
                 <tr>
-                 <td style="text-align:center; font-size: 14px; font-weight: bold; line-height: 0.9;">
+                 <td style="text-align:center; font-size: 18px; font-weight: bold; line-height: 0.9;">
                  السنة الدراسية %(school_year)s
                  </td>
                 </tr>
             </table>
          
-            <table class="info-table" border="1" cellspacing="0" cellpadding="1" style="font-size: 12px; line-height: 0.8;border-collapse: collapse; width: 100%%; margin: 5px;">
+            <table class="info-table" border="1" cellspacing="0" cellpadding="1" style="font-size: 14px; line-height: 1.1;border-collapse: collapse; width: 100%%; margin: 5px;">
                 <tr>
-                    <td style="text-align: left; width: 50%%; border: 1px solid black; padding: 1px; line-height: 0.8;" dir="ltr">
+                    <td style="text-align: left; width: 50%%; border: 1px solid black; padding: 1px; line-height: 1.1;" dir="ltr">
                         <span style="font-family: Arial;">NOM du CCP: <b>%(sub_last_name_fr)s</b><br/>
                         Prénom du CCP: <b>%(sub_first_name_fr)s</b><br/>
                         N CCP:</span> %(sub_postal)s
                     </td>
-                    <td style="text-align: left; width: 50%%; border: 1px solid black; padding: 1px; line-height: 0.8; font-weight: bold;" dir="rtl">
+                    <td style="text-align: left; width: 50%%; border: 1px solid black; padding: 1px; line-height: 1; font-weight: bold;" dir="rtl">
                         اللقب: %(sub_last_name)s<br/>الإسم: %(sub_first_name)s<br/>رقم الحساب البريدي: %(sub_postal)s<br/>رقم الضمان الاجتماعي: %(sub_ss)s
                     </td>
                 </tr>
                 <tr>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">عنوان المتعاقد(ة): <b>%(sub_address)s</b></td>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">تاريخ ومكان الازدياد: %(sub_birth_date)s %(sub_birth_place)s</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">عنوان المتعاقد(ة): <b>%(sub_address)s</b></td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">تاريخ ومكان الازدياد: %(sub_birth_date)s %(sub_birth_place)s</td>
                 </tr>
                 <tr>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">التخصص: %(sub_degree_spec)s</td>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">الوظيفــة: أستاذ(ة) مستخلف(ة)</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">التخصص: %(sub_degree_spec)s</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">الوظيفــة: أستاذ(ة) مستخلف(ة)</td>
                 </tr>
                 <tr>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">تاريخ نهاية التعاقد: %(end_date)s</td>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">تاريخ التنصيب: %(start_date)s</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">تاريخ نهاية التعاقد: %(end_date)s</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">تاريخ التنصيب: %(start_date)s</td>
                 </tr>
                  <tr>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">تحديد الفترة من : ........... إلى ...........</td>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">عدد الغيابات الإجمالية للفترة:...........</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">تحديد الفترة من : ........... إلى ...........</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">عدد الغيابات الإجمالية للفترة:...........</td>
                 </tr>
                  <tr>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">تحديد الفترة من : %(start_date)s إلى %(end_date)s</td>
-                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 0.8;" dir="rtl">معدل منحة تحسين الآداء التربوية:...../40</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">تحديد الفترة من : %(start_date)s إلى %(end_date)s</td>
+                    <td style="text-align: left; border: 1px solid black; padding: 1px; font-weight: bold; line-height: 1;" dir="rtl">معدل منحة تحسين الآداء التربوية:...../40</td>
                 </tr>
             </table>
 
-            <table width="100%%" dir="rtl" style="line-height: 0.9;margin-top: 5px;">
+            <table width="100%%" dir="rtl" style="line-height: 1;margin-top: 5px;">
                 <tr>
                     <td style="font-size:16px; font-weight: bold; text-align:center; width:40%%;">
                         %(school_address)s في %(today)s
@@ -1413,7 +1431,7 @@ class SickLeavePage(QWidget):
         today_str = datetime.now().strftime("%Y/%m/%d")
         start_date = dict(subst).get("start_date", "").replace("-", "/")
 
-        school_display = school
+        school_display = school + " - " + school_address
         if school_code:
             school_display += "<br/>رمز المؤسسة: %s" % school_code
 
@@ -1434,17 +1452,17 @@ class SickLeavePage(QWidget):
         <head><style>
             body { font-family: 'Amiri', 'Traditional Arabic', serif;
                    direction: rtl; text-align: right; margin: 30px 40px; line-height: 0.9; }
-            .header-text { font-size: 16px; font-weight: bold; text-align: center; }
-            .header-info { width: 100%%; font-size: 16px; font-weight: bold; margin-top: 5px; }
-            .title-box { border: 2px solid black; padding: 10px; width: fit-content; margin: 10px auto; text-align: center; font-size: 26px; font-weight: bold; }
-            .content-p { font-size: 14px; font-weight: bold; margin-top: 10px; line-height: 0.9;text-align: left; }
+            .header-text { font-size: 18px; font-weight: bold; text-align: center; }
+            .header-info { width: 100%%; font-size: 18px; font-weight: bold; margin-top: 5px; }
+            .title-box { border: 2px solid black; padding: 10px; width: fit-content; margin: 10px auto; text-align: center; font-size: 28px; font-weight: bold; }
+            .content-p { font-size: 16px; font-weight: bold; margin-top: 10px; line-height: 0.9;text-align: left; }
             .info-line { font-size: 18px; font-weight: bold; margin-top: 15px; line-height: 0.9; }
             .signatures { width: 100%%; margin-top: 60px; font-size: 18px; font-weight: bold; text-align: center; line-height: 0.9; }
         </style></head>
         <body dir="rtl">
               <div class="header-text">الجمهورية الجزائرية الديمقراطية الشعبية</div>
             <div class="header-text">وزارة التربية الوطنية</div>
-            <div style="text-align: left;">
+            <div style="font-size:18px; font-weight: bold; text-align: left;">
                 مديرية التربية لولاية %(wilaya)s<br/>
                 %(school_display)s
             </div>
@@ -1453,15 +1471,16 @@ class SickLeavePage(QWidget):
 
             <div class="title-box">محـــــــــضر تنصيـــــــــب</div>
 
-            <div class="content-p">
-                بناء على قرار التوظيف في إطار التعاقد على منصب مالي شاغر مؤقت عطلة مرضية<br/>
-                رقم: ........ /م.ت/م.ت.م/ %(current_year)s بتاريخ: %(today_str)s.<br/>
-                قمنا نحن السيد : مدير %(school)s   يوم: %(start_date)s بتنصيب السيد(ة):
-            </div>
-
-           
+                    
             
-            <table style="width: 100%%; font-size: 14px; font-weight: bold; margin: 5px auto;line-height: 0.9;" dir="rtl">
+            <table style="width: 100%%; font-size: 16px; margin: 5px auto;line-height: 0.9;" dir="rtl">
+                <tr> <td class="content-p">
+                بناء على مقرر التوظيف في إطار التعاقد على منصب مالي شاغر مؤقت عطلة مرضية
+                رقم: ........ /م.ت/م.ت.م/ %(current_year)s بتاريخ: %(today_str)s.
+                </td></tr>
+                <tr>
+                 <td class="content-p">قمنا نحن السيد : مدير %(school)s   يوم: %(start_date)s بتنصيب السيد(ة):
+                </td></tr>
                 <tr>
                     <td style="width: 100%%;">اللقب : %(sub_last_name)s</td>
                 </tr>
@@ -1484,16 +1503,16 @@ class SickLeavePage(QWidget):
        
          <table width="100%%" dir="rtl" style="line-height: 0.9;margin-top: 5px;">
                 <tr>
-                    <td style="font-size:16px; font-weight: bold; text-align:center; width:40%%;">
+                    <td style="font-size:18px; font-weight: bold; text-align:center; width:40%%;">
                         %(school_address)s في %(today)s
                     </td>
                     <td style="text-align:center; width:60%%;"></td>
                 </tr>
                 <tr>
-                    <td style="font-size:16px; font-weight: bold; text-align:center; width:40%%; padding-top: 10px;">
+                    <td style="font-size:18px; font-weight: bold; text-align:center; width:40%%; padding-top: 10px;">
                         المدير
                     </td>
-                    <td style="text-align:center; width:60%%;">امضاء المعني</td>
+                    <td style="font-size:18px; font-weight: bold; text-align:center; width:60%%;">امضاء المعني</td>
                 </tr>
             </table>
         </body></html>
@@ -1547,9 +1566,9 @@ class SickLeavePage(QWidget):
         <html dir="rtl">
         <head><style>
             body { font-family: 'Traditional Arabic', 'Amiri', serif;
-                   direction: rtl; text-align: right; margin: 0px; padding: 0px; font-size: 13px; font-weight: bold; }
-            .header-text { font-size: 16px; font-weight: bold; text-align: center; }
-            .entete { font-size: 13px; font-weight: bold; text-align: right; margin-bottom: 2px; }
+                   direction: rtl; text-align: right; margin: 0px; padding: 0px; font-size: 16px; }
+            .header-text { font-size: 18px; font-weight: bold; text-align: center; }
+            .entete { font-size: 18px; font-weight: bold; text-align: right; margin-bottom: 2px; }
             .considerations { font-size: 12px; text-align: right; }
             .article { text-align: right; font-size: 14px; margin-top: 5px; }
             .article-title { font-weight: bold; text-decoration: underline; }
@@ -1570,11 +1589,11 @@ class SickLeavePage(QWidget):
             </div>
 
             <div style="line-height: 0.9;text-align: center;">
-                <h2 style="line-height: 0.9;text-align: center;margin:0px">مقرر توظـيف في اطار التعاقد</h2>
-                <h3 style="line-height: 0.9;text-align: center;margin:0px">عطلة مرضية / عطلة أمومة</h3>
+                <h2 style="font-size: 22px;font-weight: bold;line-height: 0.9;text-align: center;margin:0px">مقرر توظـيف في اطار التعاقد</h2>
+                <h3 style="font-size: 20px;font-weight: bold;line-height: 0.9;text-align: center;margin:0px">عطلة مرضية / عطلة أمومة</h3>
             </div>
 
-            <table width="100%%" cellspacing="0" cellpadding="0" dir="rtl" style="font-size: 12px;line-height: 0.9;">
+            <table width="100%%" cellspacing="0" cellpadding="0" dir="rtl" style="font-size: 16px;line-height: 1;">
                 <tr><td colspan="2" align="right"><b>إن السيد(ة) مديـــر التربيـــة لولايـــة %(wilaya)s .</b></td></tr>
                 <tr>
                     <td align="right">بمقتضى الأمر رقم : 06-03 المؤرخ في : 19 جمادى الثانية عام 1427 الموافق 15 يوليو سنة 2006 المتضمن القانون الأساسي العام للوظيفة العمومية المتمم.</td>
@@ -1601,66 +1620,58 @@ class SickLeavePage(QWidget):
                     <td width="15" align="center" valign="top">-</td>
                 </tr>
                 <tr>
-                    <td align="right" style="font-size: 13px;">بناء على الشهادة الطبية المؤرخة في <b>%(cert_date)s</b> المقدمة من طرف الأستاذ(ة): <b>%(teacher_name)s</b> .</td>
-                    <td width="15" align="center" valign="top" style="font-size: 13px;">-</td>
+                    <td align="right" style="font-size: 16px;">بناء على الشهادة الطبية المؤرخة في <b>%(cert_date)s</b> المقدمة من طرف الأستاذ(ة): <b>%(teacher_name)s</b> .</td>
+                    <td width="15" align="center" valign="top" style="font-size: 16px;">-</td>
                 </tr>
                 <tr>
-                    <td align="right" style="font-size: 13px;">بناء على طلب التوظيف المقدم من طرف السيد(ة): <b>%(sub_name)s</b> المؤرخ في : <b>%(sub_start_date)s</b> .</td>
-                    <td width="15" align="center" valign="top" style="font-size: 13px;">-</td>
+                    <td align="right" style="font-size: 16px;">بناء على طلب التوظيف المقدم من طرف السيد(ة): <b>%(sub_name)s</b> المؤرخ في : <b>%(sub_start_date)s</b> .</td>
+                    <td width="15" align="center" valign="top" style="font-size: 16px;">-</td>
                 </tr>
                 <tr>
-                    <td colspan="2" align="right" style="font-size: 13px;">الحاصل(ة) على شهادة: <b>%(sub_degree_type)s تخصص %(sub_degree_spec)s</b> الصادرة عن : <b>%(sub_degree_source)s</b> .</td>
+                    <td colspan="2" align="right" style="font-size: 16px;">الحاصل(ة) على شهادة: <b>%(sub_degree_type)s تخصص %(sub_degree_spec)s</b> الصادرة عن : <b>%(sub_degree_source)s</b> .</td>
                    
                 </tr>
                 <tr>
-                    <td align="right" style="font-size: 13px;">باقتراح من السيـــد(ة) مديـر(ة): <b>%(school)s</b> .</td>
-                    <td width="15" align="center" valign="top" style="font-size: 13px;">-</td>
+                    <td align="right" style="font-size: 16px;">باقتراح من السيـــد(ة) مديـر(ة): <b>%(school)s</b> .</td>
+                    <td width="15" align="center" valign="top" style="font-size: 16px;">-</td>
                 </tr>
             </table>
 
-            <div align="center" style="font-size: 20px; font-weight: bold; margin-top: 2px; margin-bottom: 2px;">يــــــــقــــــــــــرر</div>
+            <div align="center" style="font-size: 24px; font-weight: bold; margin-top: 1px; margin-bottom: 1px;">يــــــــقــــــــــــرر</div>
 
-            <table width="100%%" cellspacing="0" cellpadding="0" dir="rtl" style="font-size: 14px;">
+            <table width="100%%" cellspacing="0" cellpadding="0" dir="rtl" style="font-size: 18px;">
                 <tr>
-                    <td align="right">
+                    <td colspan="2" align="right">
                         <span style="font-weight: bold; text-decoration: underline;">المـادة الأولــى :</span> يوظف السيــد (ة) : <b>%(sub_name)s</b>، 
                     </td>
                 </tr>
-                <tr><td align="right"> في إطار التعاقد على منصب شاغر مؤقت (عطلة مرضية) من: <b>%(start_date)s</b> إلى: <b>%(end_date)s</b>،</td></tr>
-                <tr><td align="right"> في رتبة : <b>%(prof_title)s</b>، المادة : <b>%(subject)s</b>،</td></tr>
-                <tr><td align="right"> خلفــا للأستاذ(ة) : <b>%(teacher_name)s</b> بالمؤسسة : <b>%(school)s</b>.</td></tr>
-            </table>
-
-            <table width="100%%" cellspacing="0" cellpadding="0" dir="rtl" style="font-size: 14px; margin-top: 3px;">
+                <tr><td colspan="2" align="right"> في إطار التعاقد على منصب شاغر مؤقت (عطلة مرضية) من: <b>%(start_date)s</b> إلى: <b>%(end_date)s</b>،</td></tr>
+                <tr><td colspan="2" align="right"> في رتبة : <b>%(prof_title)s</b>، المادة : <b>%(subject)s</b>،</td></tr>
+                <tr><td colspan="2" align="right"> خلفــا للأستاذ(ة) : <b>%(teacher_name)s</b> بالمؤسسة : <b>%(school)s</b>.</td></tr>
                 <tr>
-                    <td align="right">
+                    <td colspan="2" align="right">
                         <span style="font-weight: bold; text-decoration: underline;">المادة الثانية :</span> يتقاضى المعني(ة) بالأمر مرتبه(ها) على أساس الصنف <b>%(class_grade)s</b> الرقم الاستدلالي <b>%(index_points)s</b>.
                     </td>
                 </tr>
-            </table>
-
-             <table width="100%%" cellspacing="0" cellpadding="0" dir="rtl" style="font-size: 14px; margin-top: 3px;">
-                <tr>
-                    <td align="right">
+               <tr>
+                    <td colspan="2" align="right">
                         <span style="font-weight: bold; text-decoration: underline;">المـادة الثالثة :</span> يكلف السادة رئيس مصلحة المستخدمين و رئيس مصلحة تسيير نفقات المستخدمين و مدير(ة) المؤسسة بتنفيذ هذا القرار كل في مجال اختصاصه .
                     </td>
                 </tr>
-            </table>
-
-            <table width="100%%" class="footer-table" dir="rtl" align="right" style="margin-top: 15px;">
                 <tr>
                     <td align="center" style="text-align:center; width:50%%;" dir="rtl">
                         %(wilaya)s في <b>%(start_date)s</b>
                     </td>
-                    <td style="text-align:right; width:50%%;"></td>
+                    <td style="font-weight: bold;text-align:right; width:50%%;"></td>
                 </tr>
                 <tr>
-                    <td align="center" style="text-align:center; width:50%%;" dir="rtl">
+                    <td align="center" style="font-weight: bold;text-align:center; width:50%%;" dir="rtl">
                         مدير التربية
                     </td>
                     <td style="text-align:right; width:50%%;"></td>
                 </tr>
             </table>
+
         </body></html>
         """ % {
             "wilaya": wilaya,
@@ -1687,11 +1698,12 @@ class SickLeavePage(QWidget):
         school = settings.get("school_name", "المؤسسة التعليمية")
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
+        school_address = settings.get("school_address", "......................")
         year = datetime.now().year
         school_initials = self._get_school_initials(school)
         director = settings.get("director_name", "")
         
-        school_display = school
+        school_display = school + " - " + school_address
         if school_code:
             school_display += "<br/>رمز المؤسسة: %s" % school_code
         
@@ -1737,43 +1749,43 @@ class SickLeavePage(QWidget):
         <head><style>
             body { font-family: 'Amiri', 'Traditional Arabic', serif;
                    direction: rtl; text-align: right; margin: 30px; line-height: 0.9; }
-            .header-text { font-size: 16px; font-weight: bold; text-align: center; margin: 2px 0; }
+            .header-text { font-size: 18px; font-weight: bold; text-align: center; margin: 2px 0; }
             .header-right { font-size: 14px; font-weight: bold; text-align: right; margin-top: 10px; margin-bottom: 20px; line-height: 0.9; }
         </style></head>
         <body dir="rtl">
-             <table width="100%%" dir="rtl" style="font-size:18px; font-weight:bold; margin-top: 0px; margin-bottom: 5px;line-height: 0.8;">
+             <table width="100%%" dir="rtl" style="font-size:18px; font-weight:bold; margin-top: 0px; margin-bottom: 5px;line-height: 1;">
                 <tr >
-                    <td align="center" width="100%%" style="padding:0px; font-size: 18px; font-weight: bold; line-height: 0.8;">
+                    <td align="center" width="100%%" style="padding:0px; font-size: 18px; font-weight: bold; line-height: 1;">
                     الجمهورية الجزائرية الديمقراطية الشعبية
                     </td>
                 </tr>
                  <tr >
-                    <td align="center" width="100%%" style="padding:0px; font-size: 16px; font-weight: bold; line-height: 0.8;">
+                    <td align="center" width="100%%" style="padding:0px; font-size: 18px; font-weight: bold; line-height: 1;">
                     وزارة التربية الوطنية
                     </td>
                 </tr>
                  <tr>
-                    <td align="right" width="100%%" style="padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td align="right" width="100%%" style="padding:0px; font-size: 18px; font-weight: bold; line-height: 1;">
                         مديرية التربية لولاية %(wilaya)s
                       
                     </td>
                 </tr>
                  <tr>
-                    <td align="right" width="100%%" style="padding:0px; font-size: 14px; font-weight: bold; line-height: 0.8;">
+                    <td align="right" width="100%%" style="padding:0px; font-size: 18px; font-weight: bold; line-height: 0.8;">
                        
                         %(school_display)s
                     </td>
                 </tr>
-                  <tr style="line-height: 0.8;">
+                  <tr style="line-height: 1;">
                     
                   
                
-                    <td dir="rtl" style="line-height: 0.8;font-size: 14px;direction:rtl;text-align: left;">
+                    <td dir="rtl" style="line-height: 1;font-size: 18px;direction:rtl;text-align: left;">
                      <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم:.............&rlm;/&rlm; %(school_initials)s&rlm;/&rlm; %(year)s</span>
                     </td>
                     </tr>
                 <tr>
-                <td style="font-size: 24px;font-weight: bold;" align="center" width="100%%">
+                <td style="font-size: 28px;font-weight: bold;" align="center" width="100%%">
                    
                     شهادة عمــــل
                   
@@ -1782,9 +1794,9 @@ class SickLeavePage(QWidget):
            
             </table>
           
-            <table dir="rtl" width="100%%" border="0" style="font-size:14px; font-weight:bold; line-height:0.9; margin-top: 10px;">
+            <table dir="rtl" width="100%%" border="0" style="font-size:16px; font-weight:bold; line-height:1; margin-top: 10px;">
                 <tr>
-                <td colspan="3" style="font-size:16px;">يشهد السيد مدير %(school)s أن السيد(ة) المذكور(ة) أسفله:</td>
+                <td colspan="3" style="font-size:18px;">يشهد السيد مدير %(school)s أن السيد(ة) المذكور(ة) أسفله:</td>
                 </tr>
                 <tr>
                 <td width="75%%" style="border: none;">%(first_name)s</td>
@@ -1809,19 +1821,19 @@ class SickLeavePage(QWidget):
                 </tr>
                 <tr>
                
-                <td colspan="3" style="font-size:16px;border: none;">      %(work_status_text)s </td>
+                <td colspan="3" style="font-size:18px;border: none;">      %(work_status_text)s </td>
                 </tr>
                  <tr>
                
-                <td align="center" style="font-size:16px; line-height:1.0; font-weight:bold; margin-top: 5px;" colspan="3">  سُلمت هذه الشهادة للعمل بها في حدود ما يقتضيه القانون. </td>
+                <td align="center" style="font-size:18px; line-height:1.0; font-weight:bold; margin-top: 5px;" colspan="3">  سُلمت هذه الشهادة للعمل بها في حدود ما يقتضيه القانون. </td>
                 </tr>
             </table>
            
             
-             <table width="100%%" class="footer-table" dir="rtl" align="right" style="margin-top: 5px;font-size: 16px;">
+             <table width="100%%" class="footer-table" dir="rtl" align="right" style="margin-top: 5px;font-size: 18px;">
                 <tr>
                     <td align="center" style="text-align:center; width:50%%;" dir="rtl">
-                        حرر بـ %(wilaya)s في: %(date)s
+                        حرر بـ %(school_address)s في: %(date)s
                     </td>
                     <td style="text-align:right; width:50%%;"></td>
                 </tr>
@@ -1835,6 +1847,7 @@ class SickLeavePage(QWidget):
         </body></html>
         """ % {
             "wilaya": wilaya, "school": school, "school_display": school_display,
+            "school_address": school_address,
             "first_name": emp_fn, "last_name": emp_ln,
             "birth_date": emp_bd, "birth_place": emp_bp,
             "grade": emp_grade, "subject": emp_subject,
@@ -1910,6 +1923,10 @@ class SickLeavePage(QWidget):
                 reprint_action.triggered.connect(
                     lambda checked, sid=sl["id"]: self._reprint_resume_work(sid)
                 )
+
+            menu.addSeparator()
+            delete_action = menu.addAction(get_icon("delete", color="#ef4444"), "حذف العطلة المرضية")
+            delete_action.triggered.connect(lambda checked, sid=sl["id"]: self._delete_sick_leave(sid))
 
             options_btn.setMenu(menu)
             al.addWidget(options_btn)

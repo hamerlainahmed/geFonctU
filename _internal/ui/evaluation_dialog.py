@@ -189,6 +189,7 @@ class EvaluationPrinter:
         emp_dip_date = EvaluationPrinter._date_val(emp.get("diploma_date"))
         emp_grade    = emp.get("grade") or ""
         emp_subject  = emp.get("subject") or ""
+        subject_display = f"المادة : {emp_subject}" if emp_subject and "أستاذ" in emp_grade else ""
         emp_category = emp.get("category") or ""
         emp_degree   = emp.get("degree") or ""
         eff_date     = EvaluationPrinter._date_val(emp.get("effective_date"))
@@ -390,7 +391,7 @@ class EvaluationPrinter:
   <tr><td style="font-weight:bold; text-align:left; padding:0px;">تاريخ الحصول عليها : {emp_dip_date}</td>
       <td style="font-weight:bold; text-align:left; padding:0px;">الشهادة المحصل عليها : {emp_diploma}</td>
       </tr>
-  <tr><td style="font-weight:bold; text-align:left; padding:0px;">المادة : {emp_subject}</td>
+  <tr><td style="font-weight:bold; text-align:left; padding:0px;">{subject_display}</td>
       <td style="font-weight:bold; text-align:left; padding:0px;">الرتبة الحالية : {emp_grade}</td>
       </tr>
   <tr><td style="font-weight:bold; text-align:left; padding:0px;">الدرجة : {emp_degree}</td>

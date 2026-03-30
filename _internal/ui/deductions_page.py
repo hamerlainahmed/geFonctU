@@ -206,19 +206,19 @@ class DeductionsPage(QWidget):
                 reason_text = "عدم تأدية مهامكم"
 
         deduction_details = (
-            "<p style=\"font-size: 13px; font-weight: bold; line-height: 0.8; text-align: left;\">"
+            "<p style=\"font-size: 16px; font-weight: bold; line-height: 1.0; text-align: left;\">"
             "نحيطكم علما أننا اقترحنا: %s<br/>"
             "وذلك للأسباب التالية : %s"
             "</p>"
         ) % (proposed, reason_text)
 
         core_content = """
-            <div style="line-height:0.9;text-align:center; font-weight: bold;">
-                <div style="line-height:0.9;text-align:center;font-size:15px;">الجمهورية الجزائرية الديمقراطية الشعبية</div>
-                <div style="line-height:0.9;text-align:center;font-size:13px;">وزارة التربية الوطنية</div>
+            <div style="line-height: 0.7;text-align:center; font-weight: bold;">
+                <div style="line-height: 0.7;text-align:center;font-size:18px;">الجمهورية الجزائرية الديمقراطية الشعبية</div>
+                <div style="line-height: 0.7;text-align:center;font-size:18px;">وزارة التربية الوطنية</div>
             </div>
-            <table width="100%%" style="line-height:0.9;font-weight: bold; font-size: 13px;">
-                <tr style="line-height:0.9;">
+            <table width="100%%" style="line-height: 0.7;font-weight: bold; font-size: 16px;">
+                <tr style="line-height: 0.7;">
                     <td style="text-align:right; width:50%%;">
                         السنة الدراسية: %(school_year)s
                     </td>
@@ -227,7 +227,7 @@ class DeductionsPage(QWidget):
                       مديرية التربية لولاية %(wilaya)s
                     </td>
                 </tr>
-                <tr style="line-height:0.9;">
+                <tr style="line-height: 0.7;">
                     
                      <td style="text-align:center; width:50%%;">
                        إلى
@@ -236,7 +236,7 @@ class DeductionsPage(QWidget):
                         %(school)s - %(school_addr)s
                     </td>
                 </tr>
-                <tr style="line-height:0.9;">
+                <tr style="line-height: 0.7;">
                     
                     <td style="text-align:center; width:50%%;">
                      السيد(ة): <b>%(emp_name)s</b>
@@ -245,7 +245,7 @@ class DeductionsPage(QWidget):
                         رمز المؤسسة: %(school_code)s
                     </td>
                 </tr>
-                <tr style="line-height:0.9;">
+                <tr style="line-height: 0.7;">
                     
                     <td style="text-align:center; width:50%%;">
                      الرتبة: <b>%(emp_grade)s</b>
@@ -255,53 +255,61 @@ class DeductionsPage(QWidget):
                     </td>
                 </tr>
             </table>
-           <table width="100%%" style="line-height:0.9;font-weight: bold; font-size: 13px;">
-            <tr style="line-height:0.8;">
-                <td colspan="2" style="font-size: 16px; text-align:left; width:100%%;">
+           <table width="100%%" style="line-height: 0.7;font-weight: bold; font-size: 16px;">
+            <tr style="line-height: 0.7;">
+                <td colspan="2" style="font-size: 18px; text-align:left; width:100%%;">
                     الموضوع: إشعار بالخصم
                 </td>
                
             </tr>
-            <tr style="line-height:0.8;">
-                <td colspan="2" style="text-align:left; width:100%%;">
+            <tr style="line-height: 0.7;">
+                <td colspan="2" style="font-size: 16px; text-align:left; width:100%%;">
                     عطفا على الاستفسار المؤرخ في: <b>%(inquiry_date)s</b>، 
               
                 </td>
               
             </tr>
-            <tr style="line-height:0.8;">
-                <td colspan="2" style="text-align:left; width:100%%;">
+            <tr style="line-height: 0.7;">
+                <td colspan="2" style="font-size: 16px; text-align:left; width:100%%;">
                   %(deduction_details)s
                 </td>
               
             </tr>
-         
-            <tr style="line-height:0.8;">
+            <tr style="line-height: 0.7;">
+                <td colspan="2" style="font-size: 14px; text-align:left; width:100%%;">
+                  %(notes_section)s
+                </td>
+              
+            </tr>
+            <tr style="line-height: 0.7;">
                 <td style="text-align:center; width:30%%;">
 حرر بـ%(school_address)s في: %(today)s
                 </td>
-                <td style="font-size: 12px; text-align:left; width:70%%;">
+                <td style="font-size: 13px; text-align:left; width:70%%;">
                 نسخة موجهة إلى:
                 </td>
               
             </tr>
-            <tr>
-                <td style="text-align:center; width:30%%;">
- المدير(ة)
+            <tr style="line-height: 0.7;">
+                <td style="font-size: 16px; text-align:center; width:30%%;">
+   المدير(ة)
                 </td>
-                <td style="font-size: 12px; text-align:left; width:70%%;">
+                <td style="font-size: 13px; text-align:left; width:70%%;">
 - ملف المعني بالأمر
                 </td>
               
             </tr>
-            <tr>
-                <td style="text-align:center; width:30%%;">
- <b>%(director)s</b>                </td>
-                <td style="font-size: 12px; text-align:left; width:70%%;">
+            <tr style="line-height: 0.7;">
+                <td style="font-size: 16px; text-align:center; width:30%%;">
+                <b>%(director)s</b>   
+             </td>
+                <td style="font-size: 13px; text-align:left; width:70%%;">
 - م.ت.ن. المستخدمين
                 </td>
               
             </tr>
+       
+            
            </table>
         """ % {
             "wilaya": wilaya, "school": school, "school_code": school_code,
@@ -314,7 +322,7 @@ class DeductionsPage(QWidget):
             "decision": decision,
             "deduction_details": deduction_details,
             "notes_section": (
-                '<p style="font-size:14px; font-weight:bold; color: #666;">ملاحظات: %s</p>'
+                '<p style="line-height: 0.7;font-size:13px; font-weight:bold; color: #666;">ملاحظات: %s</p>'
                 % inquiry["decision_notes"]
             ) if inquiry["decision_notes"] else "",
             "today": today, "director": director,
@@ -328,14 +336,14 @@ class DeductionsPage(QWidget):
             
         </style></head>
         <body style="margin: 0; padding: 0;" dir="rtl">
-            <table height="100vh" width="100%%" cellspacing="0" cellpadding="0"
-         style="border-collapse: collapse; table-layout: fixed; margin: 0; padding: 0;">
-                <tr>
-                    <td height="100vh" width="49%%" style="padding: 3px; border: 1px dashed #999; direction: rtl;">
+            <table height="100%%" width="100%%" cellspacing="0" cellpadding="0"
+         style="border-collapse: collapse; margin: 0; padding: 0;">
+                <tr style="height: 100%%;">
+                    <td width="49%%" style="padding: 3px; border: 1px dashed #999; direction: rtl;">
                         %s
                     </td>
-                    <td height="100vh" width="1%%" style="border: none;"></td>
-                    <td height="100vh" width="49%%" style=" padding: 3px; border: 1px dashed #999; direction: rtl;">
+                    <td width="1%%" style="border: none;"></td>
+                    <td width="49%%" style=" padding: 3px; border: 1px dashed #999; direction: rtl;">
                         %s
                     </td>
                 </tr>
@@ -515,7 +523,7 @@ class DeductionsPage(QWidget):
             
             if is_justified:
                 table_rows += (
-                    '<tr style="line-height: 0.8;">'
+                    '<tr style="line-height: 1.0;">'
                     '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
                     '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
                     '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
@@ -527,7 +535,7 @@ class DeductionsPage(QWidget):
                 ) % (r.get("doctor", ""), r["date"], r["days"], r["code"], r["grade"], r["name"], idx + 1)
             else:
                 table_rows += (
-                    '<tr style="line-height: 0.8;">'
+                    '<tr style="line-height: 1.0;">'
                     '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
                     '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
                     '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
@@ -552,25 +560,25 @@ class DeductionsPage(QWidget):
             ) + header_cols
         
         page_html = """
-            <div style="line-height: 0.9; text-align: left; font-weight: bold; font-size: 14px;">
-                <div style="text-align: center; font-size: 16px;">الجمهورية الجزائرية الديمقراطية الشعبية</div>
-                <div style="text-align: center; font-size: 14px;">وزارة التربية الوطنية</div>
+            <div style="line-height: 1.0; text-align: left; font-weight: bold; font-size: 14px;">
+                <div style="text-align: center; font-size: 18px;">الجمهورية الجزائرية الديمقراطية الشعبية</div>
+                <div style="text-align: center; font-size: 18px;">وزارة التربية الوطنية</div>
             </div>
 
-            <table width="100%%" style="line-height: 0.8; font-weight: bold; font-size: 13px;">
-                <tr style="line-height: 0.8;">
+            <table width="100%%" style="line-height: 1.0; font-weight: bold; font-size: 16px;">
+                <tr style="line-height: 1.0;">
                    
                     <td style="text-align: left; width: auto;">مديرية التربية لولاية %(wilaya)s</td>
                 </tr>
-                <tr style="line-height: 0.8;">
+                <tr style="line-height: 1.0;">
                   
                     <td  style="text-align: left; width: auto;">%(school)s - %(school_address)s</td>
                 </tr>
-                <tr style="line-height: 0.8;">
+                <tr style="line-height: 1.0;">
                    
                     <td style="text-align: left; width: auto;">رمز المؤسسة : %(school_code)s</td>
                 </tr>
-                <tr style="line-height: 0.8;">
+                <tr style="line-height: 1.0;">
                     
                   
                
@@ -581,33 +589,34 @@ class DeductionsPage(QWidget):
             </table>
 
             <div style="line-height: 0.9; text-align: center;">
-                <div style="line-height: 0.9; font-size: 18px; font-weight: bold;">%(title)s لشهر: %(month_name)s %(year)s</div>
-                <div style="line-height: 0.9; font-size: 14px; font-weight: bold;">الرمز %(code)s</div>
+                <div style=" font-size: 18px; font-weight: bold;">%(title)s</div>
+                <div style="font-size: 18px; font-weight: bold;">لشهر: %(month_name)s %(year)s</div>
+                <div style=" font-size: 16px; font-weight: bold;">الرمز %(code)s</div>
             </div>
 
-            <div align="right" style="line-height: 0.9; font-size: 14px; font-weight: bold;">
+            <div align="right" style="line-height: 1.0; font-size: 18px; font-weight: bold;">
                 الإدارة : %(admin_label)s .
             </div>
 
-            <table width="100%%" dir="rtl" style="font-size: 13px; border: 1px solid #333; margin-bottom: 2px;">
+            <table width="100%%" dir="rtl" style="font-size: 16px; border: 1px solid #333; margin-bottom: 2px;">
                 <tr style="font-weight: bold;">
                     %(header_cols)s
                 </tr>
                 %(table_rows)s
             </table>
 
-            <table width="100%%" style="line-height: 0.9; font-size: 14px; font-weight: bold; margin-top: 2px;">
-                <tr style="line-height: 0.8;">
+            <table width="100%%" style="line-height: 1.0; font-size: 16px; font-weight: bold; margin-top: 2px;">
+                <tr style="line-height: 1.0;">
                     <td style="text-align: center; width: 40%%;">%(school_address)s في %(today)s</td>
                      <td style="text-align: left; width: 40%%;"></td>
                     <td style="text-align: center; width: 20%%;">تاريخ استلام:</td>
                 </tr>
-                <tr style="line-height: 0.8;">
+                <tr style="line-height: 1.0;">
                     <td style="text-align: center; width: 40%%;">المدير</td>
                      <td style="text-align: left; width: 40%%;"></td>
                     <td style="text-align: center; width: 20%%;">.............................</td>
                 </tr>
-                <tr style="line-height: 0.8;">
+                <tr style="line-height: 1.0;">
                     <td style="text-align: center; width: 40%%;"></td>
                      <td style="text-align: left; width: 40%%;"></td>
                     <td style="text-align: center; width: 20%%;">.............................</td>

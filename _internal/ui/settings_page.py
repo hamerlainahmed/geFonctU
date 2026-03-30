@@ -3,6 +3,10 @@
 Settings Page — Clean Card UI with institution information and code.
 """
 
+import sys
+import os
+import subprocess
+
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QMessageBox, QLabel,
     QGridLayout, QFrame, QGraphicsDropShadowEffect,
@@ -195,7 +199,7 @@ class SettingsPage(ScrollablePageWidget):
         if selected_year in old_years:
             reply = QMessageBox.question(
                 self, "استرجاع أرشيف قديم", 
-                f"هل تريد إعادة فتح السنة الدراسية المعزولة '{selected_year}'؟\n\nتنبيه: سيتم أرشفة السنة الحالية تلقائياً وإحلال السنة القديمة محلها كواجهة نشطة.",
+                f"هل تريد إعادة فتح السنة الدراسية المعزولة '{selected_year}'؟\n\nتنبيه: سيتم أرشفة السنة الحالية تلقائياً وإحلال السنة القديمة محلها كواجهة نشطة.\n\nسيتم إعادة تشغيل البرنامج تلقائياً.",
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.Yes:
@@ -204,10 +208,9 @@ class SettingsPage(ScrollablePageWidget):
                     QMessageBox.information(
                         self, "نجاح",
                         "تم استرجاع السنة القديمة بنجاح.\n\n"
-                        "⚠️ يرجى إعادة تشغيل البرنامج لتحديث جميع الواجهات."
+                        "سيتم إعادة تشغيل البرنامج الآن..."
                     )
-                    if self.window() and hasattr(self.window(), '_update_statusbar'):
-                        self.window()._update_statusbar()
+                    self._restart_application()
                 except Exception as e:
                     QMessageBox.critical(self, "خطأ", f"حدث خطأ أثناء الاسترجاع: {e}")
         else:
@@ -217,7 +220,8 @@ class SettingsPage(ScrollablePageWidget):
                 "• سيتم حفظ نسخة كاملة في الأرشيف\n"
                 "• سيتم تفريغ سجلات الغيابات والاستفسارات\n"
                 "• نقاط التقييم للسنة الحالية ستُحفظ وتظهر كنقاط السنة السابقة\n"
-                "• نقاط السنة الجديدة ستكون فارغة",
+                "• نقاط السنة الجديدة ستكون فارغة\n\n"
+                "سيتم إعادة تشغيل البرنامج تلقائياً.",
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.Yes:
@@ -228,9 +232,32 @@ class SettingsPage(ScrollablePageWidget):
                         f"✅ تم إنشاء السنة الدراسية '{selected_year}' بنجاح!\n\n"
                         f"• نقاط التقييم للسنة '{current_year}' محفوظة\n"
                         "• نقاط السنة الجديدة فارغة وجاهزة للإدخال\n\n"
-                        "⚠️ يرجى إعادة تشغيل البرنامج لتحديث جميع الواجهات."
+                        "سيتم إعادة تشغيل البرنامج الآن..."
                     )
-                    if self.window() and hasattr(self.window(), '_update_statusbar'):
-                        self.window()._update_statusbar()
+                    self._restart_application()
                 except Exception as e:
                     QMessageBox.critical(self, "خطأ", f"حدث خطأ أثناء أرشفة القاعدة: {e}")
+
+    def _restart_application(self):
+        """إعادة تشغيل البرنامج تلقائياً لتطبيق إعدادات السنة الجديدة."""
+        try:
+            # Determine the executable path
+            if getattr(sys, 'frozen', False):
+                # Running as compiled exe (PyInstaller)
+                exe_path = sys.executable
+                subprocess.Popen([exe_path])
+            else:
+                # Running as Python script
+                python = sys.executable
+                script = os.path.abspath(sys.argv[0])
+                subprocess.Popen([python, script])
+            
+            # Close the current application
+            from PyQt5.QtWidgets import QApplication
+            QApplication.instance().quit()
+        except Exception as e:
+            QMessageBox.warning(
+                self, "تنبيه",
+                f"تعذّر إعادة التشغيل التلقائي:\n{e}\n\n"
+                "يرجى إغلاق البرنامج وإعادة تشغيله يدوياً."
+            )

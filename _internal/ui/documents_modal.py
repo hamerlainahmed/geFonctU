@@ -203,7 +203,7 @@ class PrintDocumentDialog(QDialog):
             """
         elif self.doc_type == "محضر تنصيب":
             body = f"""
-            <h2 style="text-align:center; margin:20px 0;">محضر تنصيب</h2>
+            <h2 style="text-align:center; margin:20px 0;">محضر تنصيب 1</h2>
             <p style="font-size:14px; line-height:2;">
                 نحن الممضون أسفله، مدير {school}، نشهد أن السيد(ة) المذكور(ة) أعلاه،
                 <b>{emp_name}</b>، بصفته(ها) <b>{emp_grade}</b>{subject_line}،
