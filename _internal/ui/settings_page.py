@@ -131,7 +131,7 @@ class SettingsPage(ScrollablePageWidget):
         years_set.add(ny_1)
         years_set.add(ny_2)
         
-        sorted_years = sorted(list(years_set), reverse=True)
+        sorted_years = sorted(list(years_set))
         self.new_year_input.addItems(sorted_years)
         self.new_year_input.setCurrentText(current_active_year)
         
@@ -196,7 +196,53 @@ class SettingsPage(ScrollablePageWidget):
             
         old_years = archive_manager.get_available_archive_years()
         
-        if selected_year in old_years:
+        try:
+            selected_start = int(selected_year.split("/")[0])
+            current_start = int(current_year.split("/")[0])
+        except ValueError:
+            QMessageBox.warning(self, "خطأ", "نسق السنة المحددة غير صالح.")
+            return
+
+        if selected_start > current_start:
+            # ── Show preview of what will happen ──
+            try:
+                import year_transition
+                preview = year_transition.preview_transition()
+                preview_text = (
+                    f"• عدد الموظفين: {preview['total_employees']}\n"
+                    f"• الموظفون الذين لديهم نقطة حالية: {preview['employees_with_rating']}\n"
+                    f"• سجلات الغيابات التي ستُحذف: {preview['absences_count']}\n"
+                    f"• سجلات الاستفسارات التي ستُحذف: {preview['inquiries_count']}\n"
+                )
+            except Exception:
+                preview_text = ""
+
+            reply = QMessageBox.question(
+                self, "فتح سنة جديدة", 
+                f"هل أنت متأكد أنك تريد إغلاق السنة الحالية '{current_year}' وبدء سنة '{selected_year}'؟\n\n"
+                f"{preview_text}\n"
+                "• سيتم حفظ نسخة كاملة في الأرشيف\n"
+                "• سيتم تفريغ سجلات الغيابات والاستفسارات\n"
+                "• نقاط التقييم للسنة الحالية ستُحفظ وتظهر كنقاط السنة السابقة\n"
+                "• نقاط السنة الجديدة ستكون فارغة\n\n"
+                "⚠️ العملية ذرية: إما تنجح كاملة أو لا يتغير شيء.\n\n"
+                "سيتم إعادة تشغيل البرنامج تلقائياً.",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    archive_manager.start_new_school_year(selected_year)
+                    QMessageBox.information(
+                        self, "نجاح",
+                        f"✅ تم إنشاء السنة الدراسية '{selected_year}' بنجاح!\n\n"
+                        f"• نقاط التقييم للسنة '{current_year}' محفوظة\n"
+                        "• نقاط السنة الجديدة فارغة وجاهزة للإدخال\n\n"
+                        "سيتم إعادة تشغيل البرنامج الآن..."
+                    )
+                    self._restart_application()
+                except Exception as e:
+                    QMessageBox.critical(self, "خطأ", f"حدث خطأ أثناء أرشفة القاعدة:\n{e}")
+        else:
             reply = QMessageBox.question(
                 self, "استرجاع أرشيف قديم", 
                 f"هل تريد إعادة فتح السنة الدراسية المعزولة '{selected_year}'؟\n\nتنبيه: سيتم أرشفة السنة الحالية تلقائياً وإحلال السنة القديمة محلها كواجهة نشطة.\n\nسيتم إعادة تشغيل البرنامج تلقائياً.",
@@ -213,30 +259,6 @@ class SettingsPage(ScrollablePageWidget):
                     self._restart_application()
                 except Exception as e:
                     QMessageBox.critical(self, "خطأ", f"حدث خطأ أثناء الاسترجاع: {e}")
-        else:
-            reply = QMessageBox.question(
-                self, "فتح سنة جديدة", 
-                f"هل أنت متأكد أنك تريد إغلاق السنة الحالية '{current_year}' وبدء سنة '{selected_year}'؟\n\n"
-                "• سيتم حفظ نسخة كاملة في الأرشيف\n"
-                "• سيتم تفريغ سجلات الغيابات والاستفسارات\n"
-                "• نقاط التقييم للسنة الحالية ستُحفظ وتظهر كنقاط السنة السابقة\n"
-                "• نقاط السنة الجديدة ستكون فارغة\n\n"
-                "سيتم إعادة تشغيل البرنامج تلقائياً.",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if reply == QMessageBox.Yes:
-                try:
-                    archive_manager.start_new_school_year(selected_year)
-                    QMessageBox.information(
-                        self, "نجاح",
-                        f"✅ تم إنشاء السنة الدراسية '{selected_year}' بنجاح!\n\n"
-                        f"• نقاط التقييم للسنة '{current_year}' محفوظة\n"
-                        "• نقاط السنة الجديدة فارغة وجاهزة للإدخال\n\n"
-                        "سيتم إعادة تشغيل البرنامج الآن..."
-                    )
-                    self._restart_application()
-                except Exception as e:
-                    QMessageBox.critical(self, "خطأ", f"حدث خطأ أثناء أرشفة القاعدة: {e}")
 
     def _restart_application(self):
         """إعادة تشغيل البرنامج تلقائياً لتطبيق إعدادات السنة الجديدة."""

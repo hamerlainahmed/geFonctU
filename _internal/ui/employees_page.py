@@ -419,7 +419,7 @@ class EmployeeDialog(QDialog):
                 yr_lbl.setStyleSheet("font-weight: bold; font-size: 13px; color: #1e293b;")
             grid.addWidget(yr_lbl, row, 0)
 
-            # النقطة التربوية — min=-0.5 (empty), max=20, step=0.5
+            # النقطة التربوية — same degree-based limits as admin score
             edu_spin = QDoubleSpinBox()
             edu_spin.setDecimals(1)
             edu_spin.setSingleStep(0.5)
@@ -431,9 +431,37 @@ class EmployeeDialog(QDialog):
             edu_spin.setStyleSheet(self._spin_style())
             grid.addWidget(edu_spin, row, 1)
 
-            # تاريخ النقطة التربوية
+            # تاريخ النقطة التربوية — مقيّد ضمن السنة الدراسية
             edu_date = _NullableDateEdit()
             edu_date.setToolTip("اضغط Delete لمسح التاريخ")
+            
+            # تقييد تاريخ النقطة التربوية ضمن السنة الدراسية
+            try:
+                y1 = int(yr.split("/")[0])
+                y2 = y1 + 1
+                edu_min_d = QDate(y1, 1, 1)
+                edu_max_d = QDate(y2, 8, 31)
+                
+                edu_cal = edu_date.calendarWidget()
+                if edu_cal:
+                    edu_cal.setMinimumDate(edu_min_d)
+                    edu_cal.setMaximumDate(edu_max_d)
+                    
+                edu_date._min_valid = edu_min_d
+                edu_date._max_valid = edu_max_d
+                
+                def validate_edu_date(target=edu_date):
+                    if not target.is_null():
+                        d = target.date()
+                        if d < target._min_valid:
+                            target.setDate(target._min_valid)
+                        elif d > target._max_valid:
+                            target.setDate(target._max_valid)
+                            
+                edu_date.editingFinished.connect(validate_edu_date)
+            except Exception:
+                pass
+
             grid.addWidget(edu_date, row, 2)
 
             # النقطة الإدارية
@@ -609,7 +637,7 @@ class EmployeeDialog(QDialog):
             self.eval_container.setVisible(not exempt)
 
     def _refresh_eval_limits(self):
-        """ضبط حدود SpinBox الإدارية + الملاحظة حسب الدرجة."""
+        """ضبط حدود SpinBox الإدارية والتربوية + الملاحظة حسب الدرجة."""
         degree_str = self.degree_input.text().strip() if hasattr(self, 'degree_input') else ""
 
         try:
@@ -625,9 +653,24 @@ class EmployeeDialog(QDialog):
                 f"الحد الأقصى = {max_limit}  |  الخطوة = 0.5"
             )
 
-        # ضبط حدود كل SpinBox إدارية
+        # ضبط حدود كل SpinBox إدارية وتربوية
         # minimum = base_min - 0.5 للسماح بقيمة "فارغة" تُعرض كـ "/"
         for yr, edu_spin, edu_date, adm_spin, adm_date, remark_lbl in self._eval_widgets:
+            # ── النقطة التربوية ──
+            old_edu = edu_spin.value()
+            edu_spin.blockSignals(True)
+            edu_spin.setMinimum(base_min - 0.5)
+            edu_spin.setMaximum(max_limit)
+            edu_spin.setSpecialValueText("/")
+            if old_edu < base_min:
+                edu_spin.setValue(base_min - 0.5)  # empty
+            elif old_edu > max_limit:
+                edu_spin.setValue(max_limit)
+            else:
+                edu_spin.setValue(old_edu)
+            edu_spin.blockSignals(False)
+
+            # ── النقطة الإدارية ──
             old_val = adm_spin.value()
             adm_spin.blockSignals(True)
             adm_spin.setMinimum(base_min - 0.5)
@@ -764,7 +807,7 @@ class EmployeeDialog(QDialog):
             if edu_val is not None and float(edu_val) > 0:
                 edu_spin.setValue(float(edu_val))
             else:
-                edu_spin.setValue(-0.5)  # empty
+                edu_spin.setValue(edu_spin.minimum())  # empty
 
             edu_date.setText(ev.get("edu_date") or "")
 
@@ -846,11 +889,11 @@ class EmployeeDialog(QDialog):
             adm_val = adm_spin.value()
 
             # كلاهما فارغ → لا نحفظ
-            if edu_val < 0 and adm_val < base_min:
+            if edu_val < base_min and adm_val < base_min:
                 continue
 
             # تحضير القيم
-            edu_score = edu_val if edu_val >= 0 else None
+            edu_score = edu_val if edu_val >= base_min else None
             admin_score = adm_val if adm_val >= base_min else None
             remark = get_remark(adm_val, base_min) if admin_score else ""
 
@@ -907,7 +950,7 @@ class EmployeeDialog(QDialog):
             adm_val = adm_spin.value()
             ev = {
                 "school_year": yr,
-                "edu_score": edu_val if edu_val >= 0 else None,
+                "edu_score": edu_val if edu_val >= base_min else None,
                 "edu_date": edu_date_w.text().strip(),
                 "admin_score": adm_val if adm_val >= base_min else None,
                 "eval_date": adm_date_w.text().strip(),
