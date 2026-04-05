@@ -767,13 +767,13 @@ class AbsencesPage(QWidget):
             emp_name = "%s %s" % (r["last_name"], r["first_name"])
             table_html += f"""
             <tr>
-                <td>{r["unjustified_count"]}</td>
-                <td>{r["justified_count"]}</td>
-                <td>{r["delays_count"]}</td>
-                <td>{r["absences_count"]}</td>
-                <td>{r["grade"] or ""}</td>
-                <td>{emp_name}</td>
                 <td>{i + 1}</td>
+                <td>{emp_name}</td>
+                <td>{r["grade"] or ""}</td>
+                <td>{r["absences_count"]}</td>
+                <td>{r["delays_count"]}</td>
+                <td>{r["justified_count"]}</td>
+                <td>{r["unjustified_count"]}</td>
             </tr>
             """
             
@@ -820,13 +820,13 @@ class AbsencesPage(QWidget):
             <table width="100%" align="right" style="width: 100%;line-height: 0.9;" class="data-table">
                 <thead>
                     <tr>
-                        <th>غير مبررة</th>
-                        <th>تأخرات</th>
-                        <th>غيابات</th>
-                        <th>الرتبة</th>
-                        <th>مبررة</th>
-                        <th>اسم ولقب الموظف</th>
                         <th>الرقم</th>
+                        <th>اسم ولقب الموظف</th>
+                        <th>الرتبة</th>
+                        <th>غيابات</th>
+                        <th>تأخرات</th>
+                        <th>مبررة</th>
+                        <th>غير مبررة</th>
                     </tr>
                 </thead>
                 <tbody>

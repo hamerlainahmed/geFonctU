@@ -637,7 +637,8 @@ class EmployeeDialog(QDialog):
             self.eval_container.setVisible(not exempt)
 
     def _refresh_eval_limits(self):
-        """ضبط حدود SpinBox الإدارية والتربوية + الملاحظة حسب الدرجة."""
+        """ضبط حدود SpinBox الإدارية والتربوية + الملاحظة حسب الدرجة.
+        السلّم يُطبّق فقط على حقول السنة الحالية، أما السنوات السابقة فحرة (0-20)."""
         degree_str = self.degree_input.text().strip() if hasattr(self, 'degree_input') else ""
 
         try:
@@ -647,25 +648,39 @@ class EmployeeDialog(QDialog):
 
         base_min, max_limit = compute_score_limits(degree)
 
+        settings = db.get_all_settings()
+        current_year = settings.get("school_year", "2025/2026")
+
         if hasattr(self, 'range_label'):
             self.range_label.setText(
                 f"سلّم التنقيط للدرجة {degree}:  الحد الأدنى = {base_min}  |  "
-                f"الحد الأقصى = {max_limit}  |  الخطوة = 0.5"
+                f"الحد الأقصى = {max_limit}  |  الخطوة = 0.5\n"
+                f"⚠️ سلّم التنقيط يُطبّق فقط على حقول السنة الحالية ({current_year})"
             )
 
         # ضبط حدود كل SpinBox إدارية وتربوية
-        # minimum = base_min - 0.5 للسماح بقيمة "فارغة" تُعرض كـ "/"
         for yr, edu_spin, edu_date, adm_spin, adm_date, remark_lbl in self._eval_widgets:
+            is_current = (yr == current_year)
+
+            if is_current:
+                # السنة الحالية: تطبيق سلّم التنقيط حسب الدرجة
+                spin_min = base_min - 0.5
+                spin_max = max_limit
+            else:
+                # السنوات السابقة: حرية كاملة (0-20)
+                spin_min = -0.5
+                spin_max = 20.0
+
             # ── النقطة التربوية ──
             old_edu = edu_spin.value()
             edu_spin.blockSignals(True)
-            edu_spin.setMinimum(base_min - 0.5)
-            edu_spin.setMaximum(max_limit)
+            edu_spin.setMinimum(spin_min)
+            edu_spin.setMaximum(spin_max)
             edu_spin.setSpecialValueText("/")
-            if old_edu < base_min:
-                edu_spin.setValue(base_min - 0.5)  # empty
-            elif old_edu > max_limit:
-                edu_spin.setValue(max_limit)
+            if old_edu < edu_spin.minimum():
+                edu_spin.setValue(spin_min)  # empty
+            elif old_edu > spin_max:
+                edu_spin.setValue(spin_max)
             else:
                 edu_spin.setValue(old_edu)
             edu_spin.blockSignals(False)
@@ -673,14 +688,13 @@ class EmployeeDialog(QDialog):
             # ── النقطة الإدارية ──
             old_val = adm_spin.value()
             adm_spin.blockSignals(True)
-            adm_spin.setMinimum(base_min - 0.5)
-            adm_spin.setMaximum(max_limit)
+            adm_spin.setMinimum(spin_min)
+            adm_spin.setMaximum(spin_max)
             adm_spin.setSpecialValueText("/")
-            # إذا القيمة الحالية خارج المجال → إعادة ضبطها
-            if old_val < base_min:
-                adm_spin.setValue(base_min - 0.5)  # empty
-            elif old_val > max_limit:
-                adm_spin.setValue(max_limit)
+            if old_val < adm_spin.minimum():
+                adm_spin.setValue(spin_min)  # empty
+            elif old_val > spin_max:
+                adm_spin.setValue(spin_max)
             else:
                 adm_spin.setValue(old_val)
             adm_spin.blockSignals(False)
@@ -888,13 +902,17 @@ class EmployeeDialog(QDialog):
             edu_val = edu_spin.value()
             adm_val = adm_spin.value()
 
+            is_current = (yr == current_year)
+            # Threshold for "empty" value: for current year it's base_min, for previous years it's 0
+            empty_threshold = base_min if is_current else 0.0
+
             # كلاهما فارغ → لا نحفظ
-            if edu_val < base_min and adm_val < base_min:
+            if edu_val < empty_threshold and adm_val < empty_threshold:
                 continue
 
             # تحضير القيم
-            edu_score = edu_val if edu_val >= base_min else None
-            admin_score = adm_val if adm_val >= base_min else None
+            edu_score = edu_val if edu_val >= empty_threshold else None
+            admin_score = adm_val if adm_val >= empty_threshold else None
             remark = get_remark(adm_val, base_min) if admin_score else ""
 
             rec = {
@@ -948,11 +966,13 @@ class EmployeeDialog(QDialog):
         for yr, edu_spin, edu_date_w, adm_spin, adm_date_w, remark_lbl in self._eval_widgets:
             edu_val = edu_spin.value()
             adm_val = adm_spin.value()
+            is_current = (yr == current_year)
+            threshold = base_min if is_current else 0.0
             ev = {
                 "school_year": yr,
-                "edu_score": edu_val if edu_val >= base_min else None,
+                "edu_score": edu_val if edu_val >= threshold else None,
                 "edu_date": edu_date_w.text().strip(),
-                "admin_score": adm_val if adm_val >= base_min else None,
+                "admin_score": adm_val if adm_val >= threshold else None,
                 "eval_date": adm_date_w.text().strip(),
             }
             evals.append(ev)

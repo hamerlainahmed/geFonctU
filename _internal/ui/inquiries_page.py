@@ -533,10 +533,12 @@ class InquiriesPage(QWidget):
             direction: rtl;
             margin: 0; padding: 0;
             color: #000;
+            line-height: 1.5;
           }
           .copy {
             width: 100%;
             direction: rtl;
+            line-height: 1.5;
           }
           .republic {
             text-align: center;
@@ -554,7 +556,7 @@ class InquiriesPage(QWidget):
             border: 1px solid #000;
             padding: 1px;
             font-size: 11px;
-            line-height: 1.0;
+            
           }
           .title {
             text-align: center;
@@ -567,7 +569,7 @@ class InquiriesPage(QWidget):
           .body-text {
             font-size: 11px;
             font-weight: bold;
-            line-height: 0.8;
+            
            
           }
           .dir-block {
@@ -581,11 +583,11 @@ class InquiriesPage(QWidget):
             font-weight: bold;
             font-size: 11px;
             margin-top: 0px;
-            line-height: 1.0;
+            
           }
           .dots {
-            font-size: 11px;
-            line-height: 0.8;
+            font-size: 16px;
+            line-height: 2;
             color: #333;
           }
           table.sig-table {
@@ -603,36 +605,37 @@ class InquiriesPage(QWidget):
             <div class="copy">
           
 
-              <table style="line-height: 0.8; font-size: 11px;" cellspacing="0" cellpadding="0" dir="rtl">
+              <table style=" font-size: 11px;" cellspacing="0" cellpadding="0" dir="rtl">
             
                  <tr>
-               <td colspan="2" style="line-height: 0.8; font-size: 16px;" align="center" colspan="2">
+               <td colspan="2" style=" font-size: 18px;" align="center" colspan="2">
                     
                 الجمهورية الجزائرية الديمقراطية الشعبية              
                 </td>
                </tr>
                   <tr>
-               <td colspan="2" style="line-height: 0.8; font-size: 16px;" align="center" colspan="2">
+               <td colspan="2" style=" font-size: 18px;" align="center" colspan="2">
 
               
                 وزارة التربية الوطنية
                 </td>
                </tr>
                 <tr>
-                  <td rowspan="2"  style="border-radius: 10px;line-height: 0.7; font-size: 10px; border: 1px solid #888; width: 55%%; vertical-align: top;">
-                      * طبقا للقرار الوزاري رقم: 65 المؤرخ في 2018/07/12 المتعلق بتنظيم الجماعة التربوية في المؤسسات التعليمية (أحكام خاصة بالموظفين)<br/>
-                      * بناءً على القرار رقم: 175 المؤرخ في 1991/03/02 المحدد لمهام مدير المدرسة الأساسية
-                  </td>
-                   <td style="width: 45%%; line-height: 0.8; font-size: 16px;">
+                
+                   <td style="width: 45%%;  font-size: 16px;">
                    
                     مديرية التربية لولاية : %(wilaya)s
                  
                   
                   </td>
+                    <td rowspan="2"  style="border-radius: 10px; font-size: 11px; border: 1px solid #888; width: 55%%; text-align: center;">
+                      * طبقا للقرار الوزاري رقم: 65 المؤرخ في 2018/07/12 المتعلق بتنظيم الجماعة التربوية في المؤسسات التعليمية (أحكام خاصة بالموظفين)<br/>
+                      * بناءً على القرار رقم: 175 المؤرخ في 1991/03/02 المحدد لمهام مدير المدرسة الأساسية
+                  </td>
                 </tr>
                
                    <tr>
-                  <td style="width: 45%%; line-height: 1.0; font-size: 16px;">
+                  <td style="width: 45%%;  font-size: 16px;">
                    
                   
                      %(school)s - %(school_addr)s
@@ -645,13 +648,13 @@ class InquiriesPage(QWidget):
               
                 
                 <tr>
-                  <td align="center" colspan="2" style="line-height: 1.0; font-size: 18px;padding:0px">
+                  <td align="center" colspan="2" style=" font-size: 22px;padding:5px">
                     إسـتـفـسـار
                   </td>
                 </tr>
               </table>
 
-             <table width="100%%" border="0" padding="0px" style="line-height: 0.9; font-size: 16px;">
+             <table width="100%%" border="0" padding="0px" style="margin-top: 10px;margin-bottom: 10px;font-size: 16px;">
                 <tr>
                 <td colspan="3">
                 <u>الـمـرجـع:</u> بناء على التقرير اليومي للمصلحة : <b>%(today)s</b>
@@ -659,69 +662,85 @@ class InquiriesPage(QWidget):
                 </tr>
                 <tr>
               
-               
+                     <td >
+                السيد (ة) : <b>%(emp_name)s</b>
+                </td>
                 <td colspan="2">
                 الوظيفة : <b>%(emp_grade)s</b> %(subject_part)s
                 </td>
                 
                 
-                  <td >
-                السيد (ة) : <b>%(emp_name)s</b>
-                </td>
+            
                 </tr>
                 <tr>
-                   <td align="center" width="35%%">
-                بـ: %(school_addr)s في: %(today)s
-                
-                </td>
+                 
                 
            
-                 <td colspan="2" style="line-height: 0.9;" align="right" font-size="14px" font-weight="bold" >
+                 <td colspan="2" style="" align="right" font-size="14px" font-weight="bold" >
                 يطلب منكم تبرير ما يأتي :
 
-                </td>
+           
                 </tr>
                 <tr>
-                <td align="center" width="30%%" style="font-size: 14px;font-weight: bold;">المديـر</td>
-              <td colspan="2" style="line-height: 0.9;" align="right" font-size="14px" font-weight="bold">
+                <td colspan="2" style="" align="right" font-size="14px" font-weight="bold">
                 %(reason_line)s
 
                 </td>
+             
+              
+                </tr>
+                <tr>
+                    <td style="width: 65%%;"></td>
+                  <td align="center" width="35%%">
+                بـ: %(school_addr)s في: %(today)s
+                
+                </td>
+                </tr>
+                <tr>
+                    <td style="width: 65%%;"></td>
+                  <td align="center" width="35%%">
+                المديـر
+                
+                </td>
                 </tr>
               </table>
 
             
 
             
-              <div style="line-height: 0.9; font-size: 14px;" class="dots">
-                * جواب المعني (ة) :................................................................................................<br/>
-                .........................................................................................................................
+              <div style="line-height: 2; font-size: 16px;" class="dots">
+                * جواب المعني (ة) :..........................................................................
+                ..................................................................................................
+                ..................................................................................................
               </div>
 
-              <table style="line-height: 0.9; font-size: 14px;" width="100%%"  cellspacing="0" cellpadding="0" dir="rtl">
+              <table style="margin-top: 10px;margin-bottom: 10px; font-size: 18px;" width="100%%"  cellspacing="0" cellpadding="0" dir="rtl">
                 <tr>
-                  <td align="center" style="width: 30%%;">بـ: %(school_addr)s في: ..............................</td>
-                  <td style="width: 70%%;"></td>
+                    <td style="width: 50%%;"></td>
+                  <td align="center" style="width: 50%%;">بـ: %(school_addr)s في: ....................</td>
+              
                 </tr>
                  <tr>
-                  <td align="center" style="font-size: 14px;width: 30%%;">إمضاء المعني (ة)</td>
-                  <td align="right" class="section-title" style="width: 70%%;">* قرار مدير المؤسسة :</td>
+                 <td align="right" style="width: 50%%;"></td>
                  
+                  <td align="center" style="font-size: 16px;width: 35%%;">إمضاء المعني (ة)</td>
+                  
                 </tr>
               </table>
          
-              <div style="line-height: 0.9; font-size: 14px;" align="center" class="dots">
-                .....................................................................................................................<br/>
-                .....................................................................................................................
+              <div style="line-height: 2; font-size: 16px;" class="dots">
+                * قرار مدير المؤسسة :.........................................................................
+                ..................................................................................................
+                ..................................................................................................
               </div>
-              <table style="line-height: 0.9; font-size: 14px;" width="100%%"  cellspacing="0" cellpadding="0" dir="rtl">
+              <table style=" font-size: 18px;" width="100%%"  cellspacing="0" cellpadding="0" dir="rtl">
                 <tr>
-                  <td align="center" style="width: 30%%;">بـ: %(school_addr)s في: ..............................</td>
-                  <td style="width: 70%%;"></td>
+                  <td style="width: 50%%;"></td>
+                  <td align="center" style="width: 50%%;">بـ: %(school_addr)s في: ....................</td>
                 </tr>
                  <tr>
-                  <td align="center" style="width: 30%%;"> المديـر</td>
-                  <td style="width: 70%%;"></td>
+                  <td style="width: 50%%;"></td>
+                  <td align="center" style="width: 50%%;"> المديـر</td>
                 </tr>
               </table>
             
@@ -746,11 +765,14 @@ class InquiriesPage(QWidget):
   <table width="100%%" cellspacing="0" cellpadding="0"
          style="border-collapse: collapse; table-layout: fixed; margin: 0; padding: 0;">
     <tr>
-      <td style="width:49%%; vertical-align:top; border-right: 1px dashed #888; padding:2;">
+    
+     
+      <td style="width:49%%;padding:5px; vertical-align:top;">
+      
         %(copy)s
       </td>
-      <td style="width:2%%; border:none; padding:0;"></td>
-      <td style="width:49%%; vertical-align:top; padding:2;">
+ <td style="width:2%%; "></td>
+        <td style="width:49%%; padding:5px;border-right: 1px dashed #888; vertical-align:top; ">
         %(copy)s
       </td>
     </tr>

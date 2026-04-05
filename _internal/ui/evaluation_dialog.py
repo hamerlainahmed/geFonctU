@@ -169,7 +169,7 @@ class EvaluationPrinter:
         sy       = settings.get("school_year", "2025/2026")
         initials = _get_school_initials(school)
         year_now = datetime.now().year
-        doc_date = datetime.now().strftime("%Y-%m-%d")
+        doc_date = datetime.now().strftime("%d-%m-%Y")
 
         if not current_year:
             current_year = sy
@@ -238,13 +238,13 @@ class EvaluationPrinter:
                 edu_s = edu_dt = adm_s = adm_dt = "/"
 
             table_rows += f"""
-            <tr style="line-height: 0.7;">
-                <td style="border:1px solid #555; text-align:center;">{adm_dt}</td>
-                <td style="border:1px solid #555; text-align:center;">{adm_s}</td>
-                <td style="border:1px solid #555; text-align:center;">{edu_dt}</td>
-                <td style="border:1px solid #555; text-align:center;">{edu_s}</td>
-                <td style="border:1px solid #555; text-align:center; font-weight:bold;">{yr}</td>
+            <tr style="">
                 <td style="border:1px solid #555; text-align:center; font-weight:bold;">{i+1}</td>
+                <td style="border:1px solid #555; text-align:center; font-weight:bold;"><span dir="rtl">{yr}</span></td>
+                <td style="border:1px solid #555; text-align:center;">{edu_s}</td>
+                <td style="border:1px solid #555; text-align:center;">{edu_dt}</td>
+                <td style="border:1px solid #555; text-align:center;">{adm_s}</td>
+                <td style="border:1px solid #555; text-align:center;">{adm_dt}</td>
             </tr>"""
 
         score_line = ""
@@ -263,7 +263,7 @@ class EvaluationPrinter:
         current_year_row = f"""
         <tr style="background: #e3f2fd;">
             <td style="text-align:center; font-weight:bold; background:#bbdefb;">✦</td>
-            <td style="text-align:center; font-weight:bold; background:#bbdefb;">{current_year}</td>
+            <td style="text-align:center; font-weight:bold; background:#bbdefb;"><span dir="ltr">{current_year}</span></td>
             <td style="text-align:center; font-weight:bold;">{cur_edu_s}</td>
             <td style="text-align:center; font-weight:bold;">{cur_edu_dt}</td>
             <td style="text-align:center; font-weight:bold;">{cur_adm_s}</td>
@@ -281,13 +281,11 @@ class EvaluationPrinter:
   body {{
     font-family: 'Amiri', 'Traditional Arabic', 'Arial', sans-serif;
     font-size: 12pt;
-    direction: rtl;
+ 
     margin: 0;
     padding: 0;
     color: #000;
-    line-height: 0.8;
-    width: 210mm;
-    height: 297mm;
+   
   }}
   h2 {{
     text-align: center;
@@ -298,7 +296,7 @@ class EvaluationPrinter:
     font-size: 16pt;
     font-weight: bold;
   }}
-  .center-block {{ text-align: center; margin-bottom: 0px; }}
+  .center-block {{padding:10px; font-size:24px; text-align: center; margin-bottom: 5px; }}
   table.main-table {{
     width: 96%;
     
@@ -340,7 +338,7 @@ class EvaluationPrinter:
 <body>
 
 <!-- رأس الصفحة -->
-<table width="100%" style="line-height: 0.9; margin-bottom:2px; font-size:18pt; font-weight:bold;">
+<table width="100%" style=" margin-bottom:2px; font-size:18pt; font-weight:bold;">
   <tr>
   <td style="text-align:center;">
     الجمهورية الجزائرية الديمقراطية الشعبية
@@ -353,14 +351,15 @@ class EvaluationPrinter:
   </tr>
 </table>
 
-<table width="100%" style="line-height: 0.9; font-size:16pt; font-weight:bold;">
+<table width="100%" style=" font-size:16pt; font-weight:bold;">
   <tr>
    
-    <td align="left" width="45%">
-      {address} في : {doc_date}
-    </td>
+    
      <td align="right" width="55%">
       مديرية التربية لولاية {wilaya}
+    </td>
+    <td style="font-size:14pt;" align="right" width="45%">
+      {address} في : {doc_date}
     </td>
   </tr>
   <tr>
@@ -369,51 +368,56 @@ class EvaluationPrinter:
     </tr>
   <tr>
     <td align="right" colspan="2">
-                     <span style="unicode-bidi: bidi-override; direction: rtl;">الرقم:.............&rlm;/&rlm; {initials}&rlm;/&rlm; {year_now}</span>
+                     <span>الرقم:.............&rlm;/&rlm; {initials}&rlm;/&rlm; {year_now}</span>
                     </td>
     </tr>
 </table>
 <div class="center-block">
-  <h2>استمارة التنقيط الفردية للموسم الدراسي {current_year}</h2>
+  <h2 style="font-size: 24px; padding:10px;">استمارة التنقيط الفردية للموسم الدراسي <span dir="ltr">{current_year}</span></h2>
 </div>
 
 <!-- بيانات الموظف -->
-<table align="center" width="96%" style="line-height: 0.7; font-size:12pt; border-collapse:collapse; margin: 0px;">
-  <tr><td style="font-weight:bold; text-align:left; padding:0px;">اللقب : {emp_ln}</td>
-     <td style="font-weight:bold; text-align:left; padding:0px;">الإسم : {emp_fn}</td>
+<table align="right" width="96%" style="font-size:15pt; border-collapse:collapse; margin: 0px;">
+  <tr>
+  <td style="font-weight:bold; text-align:right; padding:0px;">اللقب : {emp_ln}</td>
+     <td style="font-weight:bold; text-align:right; padding:0px;">الإسم : {emp_fn}</td>
       </tr>
-  <tr><td style="font-weight:bold; text-align:left; padding:0px;">الحالة العائلية : {emp_family}</td>
-     <td style="font-weight:bold; text-align:left; padding:0px;">اللقب الأصلي للمتزوجات : {emp_maiden}</td>
+  <tr>
+     <td style="font-weight:bold; text-align:right; padding:0px;">اللقب الأصلي للمتزوجات : {emp_maiden}</td>
+  <td style="font-weight:bold; text-align:right; padding:0px;">الحالة العائلية : {emp_family}</td>
       </tr>
-  <tr><td colspan="2" style="font-weight:bold; text-align:left; padding:0px;">تاريخ ومكان الميلاد : {birth_str}</td>
+  <tr><td colspan="2" style="font-weight:bold; text-align:right; padding:0px;">تاريخ ومكان الميلاد : {birth_str}</td>
       </tr>
 
-  <tr><td style="font-weight:bold; text-align:left; padding:0px;">تاريخ الحصول عليها : {emp_dip_date}</td>
-      <td style="font-weight:bold; text-align:left; padding:0px;">الشهادة المحصل عليها : {emp_diploma}</td>
+  <tr>
+      <td style="font-weight:bold; text-align:right; padding:0px;">الشهادة المحصل عليها : {emp_diploma}</td>
+  <td style="font-weight:bold; text-align:right; padding:0px;">تاريخ الحصول عليها : {emp_dip_date}</td>
       </tr>
-  <tr><td style="font-weight:bold; text-align:left; padding:0px;">{subject_display}</td>
-      <td style="font-weight:bold; text-align:left; padding:0px;">الرتبة الحالية : {emp_grade}</td>
+  <tr>
+      <td style="font-weight:bold; text-align:right; padding:0px;">الرتبة الحالية : {emp_grade}</td>
+  <td style="font-weight:bold; text-align:right; padding:0px;">{subject_display}</td>
       </tr>
-  <tr><td style="font-weight:bold; text-align:left; padding:0px;">الدرجة : {emp_degree}</td>
-      <td style="font-weight:bold; text-align:left; padding:0px;">الصنف : {emp_category}</td>
+  <tr>
+      <td style="font-weight:bold; text-align:right; padding:0px;">الصنف : {emp_category}</td>
+  <td style="font-weight:bold; text-align:right; padding:0px;">الدرجة : {emp_degree}</td>
       </tr>
-  <tr><td colspan="2" style="font-weight:bold; text-align:left; padding:0px;">تاريخ سريان الدرجة : {eff_date}</td>
+  <tr><td colspan="2" style="font-weight:bold; text-align:right; padding:0px;">تاريخ سريان الدرجة : {eff_date}</td>
       </tr>
 </table>
 
 <!-- جدول النقاط -->
-<p align="left" style="font-weight:bold; font-size:12pt; text-align:   left; margin: 0px;">
+<p align="right" style="font-weight:bold; font-size:16pt; text-align:   right; margin: 0px;">
   النقاط المتحصل عليها خلال ثلاث سنوات السابقة
 </p>
 
-<table align="center" width="96%" style="line-height: 0.7; font-size:11pt; border:1px solid #000; border-collapse:collapse;">
-  <tr style="line-height: 0.7;">
-    <th colspan="2" style="border:1px solid #000;">النقطة الإدارية</th>
-    <th colspan="2" style="border:1px solid #000;">النقطة التربوية</th>
-    <th rowspan="2" style="width:18%; border:1px solid #000;">السنة الدراسية</th>
+<table align="center"  width="90%" style=" font-size:14pt; border:1px solid #000; border-collapse:collapse;">
+  <tr style="">
     <th rowspan="2" style="width:5%; border:1px solid #000;">&nbsp;</th>
+    <th rowspan="2" style="width:18%; border:1px solid #000;">السنة الدراسية</th>
+    <th colspan="2" style="border:1px solid #000;">النقطة التربوية</th>
+    <th colspan="2" style="border:1px solid #000;">النقطة الإدارية</th>
   </tr>
-  <tr style="line-height: 0.7;">
+  <tr style="">
     <th style="border:1px solid #000;">النقطة</th>
     <th style="border:1px solid #000;">تاريخها</th>
     <th style="border:1px solid #000;">النقطة</th>
@@ -423,35 +427,36 @@ class EvaluationPrinter:
 </table>
 
 <!-- النقطة الممنوحة -->
-<table align="center" width="96%" style="line-height: 0.7; font-size:11pt; border-collapse:collapse;">
+<table align="center" width="96%" style=" font-size:15pt; border-collapse:collapse;">
   <tr>
    
-    <td style="font-weight:bold; font-size:11pt;">
-      {score_line}
-    </td>
+    
      <td style="font-weight:bold; text-align:right; width:50%;">
       النقطة الإدارية الممنوحة (بالحروف)
+    </td>
+    <td style="font-weight:bold; font-size:15pt;">
+      {score_line}
     </td>
   </tr>
 </table>
 
 <!-- ملاحظات المسؤول المباشر -->
-<table align="right" style="line-height: 0.7; margin: 0px; font-size:12pt;">
+<table align="right" style=" margin: 0px; font-size:15pt;">
   <tr>
     <td style="font-weight:bold; margin-bottom: 0px;">ملاحظات المسؤول المباشر : {director_note_display}</td>
   </tr>
   <tr>
-    <td style="font-size:10pt; margin-bottom: 0px;"> ملاحظة : يجب التقيد بسلم التنقيط الخاص بمطابقة النقطة الإدارية مع الدرجة</td>
+    <td style="font-size:12pt; margin-bottom: 0px;"> ملاحظة : يجب التقيد بسلم التنقيط الخاص بمطابقة النقطة الإدارية مع الدرجة</td>
   </tr>
 </table>
 
 
 <!-- التوقيعات -->
-<table style="line-height: 0.7; font-size:14pt;" width="100%" class="footer-table">
+<table style=" font-size:15pt;" width="100%%" class="footer-table">
   <tr>
-    <td style="width:40%; text-align:center; padding: 1px;">مدير المؤسسة</td>
-    <td style="width:20%; text-align:center; padding: 1px;"></td>
-    <td style="width:40%; text-align:center; padding: 1px;">توقيع الموظف</td>
+    <td style="font-size:15pt; width:40%; text-align:center; padding: 1px;">توقيع الموظف</td>
+    <td style="font-size:15pt; width:20%; text-align:center; padding: 1px;"></td>
+    <td style="font-size:15pt; width:40%; text-align:center; padding: 1px;">مدير المؤسسة</td>
   </tr>
 
 </table>
