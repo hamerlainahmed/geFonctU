@@ -1,11 +1,11 @@
 {
     "version": "2.2.3",
-    "release_date": "2026-04-05T22:42:54.495963",
+    "release_date": "2026-04-05T22:54:54.651441",
     "release_notes": "- تعديل نموذج وثيقة الاقتطاعات: وثيقة واحدة لكل فئة تضم كل أنواع الغيابات (مرضية، أمومة، غير مبرر) مع الترتيب حسب النوع.\n- إضافة إمكانية إدخال اقتطاع يدوي مع تحديد النوع والمدة وتاريخ الشهادة الطبية.\n- تعديل سلّم التنقيط: يُطبّق فقط على حقول السنة الحالية، والسنوات السابقة حرة.\n- إلغاء قاعدة تقسيم 30 يوم للعطل المرضية: الاقتطاع يتم كاملاً في شهر واحد.\n- تصحيح عرض الموسم الدراسي في استمارة التنقيط (اتجاه RTL).\n- تحسين نظام الطباعة وتعديل أبعاد بعض الوثائق.\n- إصلاح بعض أخطاء البرمجة.",
     "files": {
-        "geFonct.exe": "cbb417c5d844e74e533aa45efbb8e9ac65af0d9625dd9f53c8a6efd817b173d9",
+        "geFonct.exe": "3109aa137be1eb9316ac11a15e8dd4f241a929172e28ddf1b8609db7d9466edf",
         "_internal/81d243bd2c585b0f4821__mypyc.cp38-win32.pyd": "178783cf85ba5a02c6e63c3e61c03e65cd35672128cdc23459d3f0d06eab8012",
-        "_internal/base_library.zip": "a7bd7641df8bc0cbdf2cbbd633b5f98bdce4caef1aec4d55c4f897a1681c89bc",
+        "_internal/base_library.zip": "1c8b0d94a39a23ea06d0e6224ea206d29011e73aeb4361382a992f9d59b2d7bd",
         "_internal/libcrypto-1_1.dll": "1e95a63b165672accde92a9c9f8b9052c8f6357344f1376af9f916aeeb306da3",
         "_internal/libffi-7.dll": "0c7ec6de19c246a23756b8550e6178ac2394b1093e96d0f43789124149486f57",
         "_internal/libssl-1_1.dll": "06958c63049e2d7fe1f56df3767e884023a76bba1f41319f7fab3439b28174c5",
@@ -194,7 +194,7 @@
         "_internal/ui/documents_modal.py": "cb9833d77531d7f856a5a44c04fc06a484ed68497ff4256aac902bdb013aa576",
         "_internal/ui/documents_page.py": "f18480c36687db204c6eeb3848768d1055ca13997ff6e8636da8ef6a6690f959",
         "_internal/ui/employees_page.py": "976650aa5a7e45888228e9f26417915d67a6c971189134ed57d3cd1040438142",
-        "_internal/ui/evaluation_dialog.py": "92a6d87dceb3f0897e3fcf6c66b82c37115053889789559bba39e096bab89f09",
+        "_internal/ui/evaluation_dialog.py": "c11123b8286e2b8dc7cbe53bd9bcde1290cbe02aa2ab57fbd3f3c75530a0fd6b",
         "_internal/ui/home_page.py": "0e37a70537eb390e0e2a7457b11d0ed0ec560a19b856c0073a214daff12d7061",
         "_internal/ui/icons.py": "b577202223cc50aaf4740ce48cc7c947d09decb70269cf0752639222bac3ce4b",
         "_internal/ui/inquiries_page.py": "eb091dc7d7b00b8372acc5eeaecf59bd8f16636730a5cc04215513c0da23ceb6",

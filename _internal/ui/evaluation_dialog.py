@@ -240,7 +240,7 @@ class EvaluationPrinter:
             table_rows += f"""
             <tr style="">
                 <td style="border:1px solid #555; text-align:center; font-weight:bold;">{i+1}</td>
-                <td style="border:1px solid #555; text-align:center; font-weight:bold;"><span dir="rtl">{yr}</span></td>
+                <td style="border:1px solid #555; text-align:center; font-weight:bold;">{yr}</td>
                 <td style="border:1px solid #555; text-align:center;">{edu_s}</td>
                 <td style="border:1px solid #555; text-align:center;">{edu_dt}</td>
                 <td style="border:1px solid #555; text-align:center;">{adm_s}</td>
@@ -263,7 +263,7 @@ class EvaluationPrinter:
         current_year_row = f"""
         <tr style="background: #e3f2fd;">
             <td style="text-align:center; font-weight:bold; background:#bbdefb;">✦</td>
-            <td style="text-align:center; font-weight:bold; background:#bbdefb;"><span dir="ltr">{current_year}</span></td>
+            <td style="text-align:center; font-weight:bold; background:#bbdefb;">{current_year}</td>
             <td style="text-align:center; font-weight:bold;">{cur_edu_s}</td>
             <td style="text-align:center; font-weight:bold;">{cur_edu_dt}</td>
             <td style="text-align:center; font-weight:bold;">{cur_adm_s}</td>
@@ -373,7 +373,7 @@ class EvaluationPrinter:
     </tr>
 </table>
 <div class="center-block">
-  <h2 style="font-size: 24px; padding:10px;">استمارة التنقيط الفردية للموسم الدراسي <span dir="ltr">{current_year}</span></h2>
+  <h2 style="font-size: 24px; padding:10px;">استمارة التنقيط الفردية للموسم الدراسي {current_year}</h2>
 </div>
 
 <!-- بيانات الموظف -->
