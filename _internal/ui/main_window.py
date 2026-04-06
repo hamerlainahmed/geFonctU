@@ -53,6 +53,15 @@ class MainWindow(MSFluentWindow):
         # Initial status update
         self._update_status()
 
+        # Connect tab changes to auto-refresh pages that have a refresh method
+        self.stackedWidget.currentChanged.connect(self._on_tab_changed)
+
+    def _on_tab_changed(self, index):
+        """Auto-refresh the page when navigated to (if it supports refresh)."""
+        widget = self.stackedWidget.widget(index)
+        if hasattr(widget, "refresh") and callable(widget.refresh):
+            widget.refresh()
+
     def check_for_updates(self):
         try:
             self.update_thread = UpdateCheckThread()

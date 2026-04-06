@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QLabel, QFrame, QSizePolicy, QTabWidget, QGraphicsDropShadowEffect,
     QPushButton, QGridLayout, QSpinBox,
 )
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QColor, QFont
 
 from ui.widgets import (
@@ -277,8 +277,8 @@ class DeductionsPage(QWidget):
         if dialog.exec_() == QDialog.Accepted:
             data = dialog.get_data()
             db.add_manual_deduction(data)
-            QMessageBox.information(self, "نجاح", "✅ تم إضافة الاقتطاع بنجاح.")
             self.refresh()
+            QMessageBox.information(self, "نجاح", "✅ تم إضافة الاقتطاع بنجاح.")
 
     def _delete_manual_deduction(self, md_id):
         reply = QMessageBox.question(
@@ -563,10 +563,13 @@ class DeductionsPage(QWidget):
                         "cert_date": "",
                     })
 
-        # 2. Sick leaves
+        # 2. Sick leaves (only old ones without deduction_month — new ones use manual deductions)
         all_sick_leaves = db.get_all_sick_leaves()
         for sl in all_sick_leaves:
             sl_d = dict(sl)
+            # Skip sick leaves that have a deduction_month set (handled via manual deductions)
+            if sl_d.get("deduction_month", ""):
+                continue
             chunks = self._calc_sick_leave_chunks(sl_d["start_date"], sl_d["duration_days"])
             for chunk in chunks:
                 if chunk["month_name"] == month_filter:
@@ -577,7 +580,7 @@ class DeductionsPage(QWidget):
                             "grade": emp["grade"] or "",
                             "code": emp["account_number"] or "",
                             "days": chunk["days"],
-                            "type": "عطلة مرضية",
+                            "type": sl_d.get("leave_type", "عطلة مرضية") or "عطلة مرضية",
                             "cert_date": sl_d.get("medical_cert_date", "") or "",
                         })
 
@@ -917,17 +920,20 @@ class DeductionsPage(QWidget):
         
         display_rows = []
         
-        # 1. Sick leaves
+        # 1. Sick leaves (only old ones without deduction_month)
         sick_leaves = db.get_all_sick_leaves()
         for sl in sick_leaves:
             sl_d = dict(sl)
+            # Skip sick leaves that have a deduction_month set (handled via manual deductions)
+            if sl_d.get("deduction_month", ""):
+                continue
             chunks = self._calc_sick_leave_chunks(sl_d["start_date"], sl_d["duration_days"])
             for chunk in chunks:
                 if month_filter == "الكل" or chunk["month_name"] == month_filter:
                     display_rows.append({
                         "employee_name": sl_d["employee_name"],
                         "employee_grade": sl_d["employee_grade"] or "",
-                        "type": "عطلة مرضية",
+                        "type": sl_d.get("leave_type", "عطلة مرضية") or "عطلة مرضية",
                         "days": chunk["days"],
                         "month": chunk["month_name"],
                         "cert_date": (sl_d.get("medical_cert_date", "") or "").replace("-", "/"),
