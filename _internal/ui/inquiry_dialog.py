@@ -385,7 +385,7 @@ class InquiryDialog(QDialog):
         emp = self.employee
         settings = db.get_all_settings()
 
-        school = settings.get("school_name", "\u0627\u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062a\u0639\u0644\u064a\u0645\u064a\u0629")
+        school = db.get_formatted_school_name()
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
         school_year = settings.get("school_year", "2025/2026")

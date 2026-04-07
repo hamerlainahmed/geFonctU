@@ -163,7 +163,7 @@ class EvaluationPrinter:
         from ui.print_header import _get_school_initials
         from datetime import datetime
 
-        school   = settings.get("school_name", "المؤسسة التعليمية")
+        school   = db.get_formatted_school_name()
         wilaya   = settings.get("wilaya", "")
         address  = settings.get("school_address", "")
         sy       = settings.get("school_year", "2025/2026")

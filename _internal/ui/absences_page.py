@@ -433,7 +433,7 @@ class AbsencesPage(QWidget):
             return
 
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
@@ -515,7 +515,7 @@ class AbsencesPage(QWidget):
             return
 
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
@@ -757,7 +757,7 @@ class AbsencesPage(QWidget):
         rows = db.get_monthly_absence_summary(year, month_idx)
         
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
         school_year = settings.get("school_year", "2025/2026")

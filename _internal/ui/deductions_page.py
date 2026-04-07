@@ -302,7 +302,7 @@ class DeductionsPage(QWidget):
             return
 
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         school_address = settings.get("school_address", "........................")
         wilaya = settings.get("wilaya", "")
@@ -312,8 +312,9 @@ class DeductionsPage(QWidget):
         today = datetime.now().strftime("%Y/%m/%d")
 
         school_display = school
+        code_label = "رمز المأمن" if settings.get("school_stage") == "إبتدائي" else "رمز المؤسسة"
         if school_code:
-            school_display += "<br/>رمز المؤسسة: %s" % school_code
+            school_display += "<br/>%s: %s" % (code_label, school_code)
 
         subject_line = ""
         if emp["subject"]:
@@ -385,7 +386,7 @@ class DeductionsPage(QWidget):
                 </tr>
                 <tr style="">
                      <td colspan="2" style="font-size:18px;text-align:right; width:50%%;">
-                        رمز المؤسسة: %(school_code)s
+                        %(code_label)s: %(school_code)s
                     </td>
                   
                    
@@ -490,7 +491,7 @@ class DeductionsPage(QWidget):
                 '<p style="font-size:14px; font-weight:bold; color: #666;">ملاحظات: %s</p>'
                 % inquiry["decision_notes"]
             ) if inquiry["decision_notes"] else "",
-            "today": today, "director": director,
+            "today": today, "director": director, "code_label": code_label,
         }
 
         html = """
@@ -660,7 +661,7 @@ class DeductionsPage(QWidget):
 
     def _generate_unified_deduction_page(self, month_name, admin_label, rows, settings, today):
         """Generate a single unified deduction page HTML with all types."""
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         school_address = settings.get("school_address", "........................")
         wilaya = settings.get("wilaya", "")
@@ -697,12 +698,12 @@ class DeductionsPage(QWidget):
         )
         
         page_html = """
-            <div style=" text-align: center; font-weight: bold; font-size: 20px;">
-                <div style="text-align: center; font-size: 20px;">الجمهورية الجزائرية الديمقراطية الشعبية</div>
-                <div style="text-align: center; font-size: 20px;">وزارة التربية الوطنية</div>
+            <div style=" text-align: center; font-weight: bold; font-size: 24px;margin-bottom: 25px;">
+                <div style="text-align: center; font-size: 24px;">الجمهورية الجزائرية الديمقراطية الشعبية</div>
+                <div style="text-align: center; font-size: 24px;">وزارة التربية الوطنية</div>
             </div>
 
-            <table width="100%%" style=" font-weight: bold; font-size: 18px;">
+            <table width="100%%" style=" font-weight: bold; font-size: 22px;">
                 <tr style="">
                    
                     <td style="text-align: right; width: auto;">مديرية التربية لولاية %(wilaya)s</td>
@@ -713,7 +714,7 @@ class DeductionsPage(QWidget):
                 </tr>
                 <tr style="">
                    
-                    <td style="text-align: right; width: auto;">رمز المؤسسة : %(school_code)s</td>
+                    <td style="text-align: right; width: auto;">%(code_label)s : %(school_code)s</td>
                 </tr>
                 <tr style="">
                     
@@ -725,23 +726,23 @@ class DeductionsPage(QWidget):
                     </tr>
             </table>
 
-            <div style="margin-top: 10px;margin-bottom: 10px;text-align: center;">
-                <div style=" font-size: 20px; font-weight: bold;">جدول الاقتطاعات المبررة و غير المبررة</div>
-                <div style="font-size: 18px; font-weight: bold;">لشهر: %(month_name)s %(year)s</div>
+            <div style="margin-top: 20px;margin-bottom: 20px;text-align: center;">
+                <div style=" font-size: 24px; font-weight: bold;">جدول الاقتطاعات المبررة و غير المبررة</div>
+                <div style="font-size: 22px; font-weight: bold;">لشهر: %(month_name)s %(year)s</div>
             </div>
 
-            <div align="right" style=" font-size: 18px; font-weight: bold;">
+            <div align="right" style=" font-size: 22px; font-weight: bold;">
                 الإدارة : %(admin_label)s .
             </div>
 
-            <table width="100%%" style="margin-top: 5px;margin-bottom: 10px;font-size: 16px; border: 1px solid #333; margin-bottom: 2px;">
+            <table width="100%%" style="margin-top: 15px;margin-bottom: 25px;font-size: 18px; border: 1px solid #333; margin-bottom: 2px;">
                 <tr style="font-weight: bold;">
                     %(header_cols)s
                 </tr>
                 %(table_rows)s
             </table>
 
-            <table width="100%%" style="margin-top: 5px;margin-bottom: 10px;font-size: 16px; font-weight: bold; margin-top: 2px;">
+            <table width="100%%" style="margin-top: 20px;margin-bottom: 20px;font-size: 20px; font-weight: bold; margin-top: 2px;">
                 <tr style="">
                     <td style="text-align: center; width: 20%%;">تاريخ استلام:</td>
                      <td style="text-align: left; width: 40%%;"></td>
@@ -771,6 +772,7 @@ class DeductionsPage(QWidget):
             "table_rows": table_rows,
             "today": today,
             "director": director,
+            "code_label": "رمز المأمن" if settings.get("school_stage") == "إبتدائي" else "رمز المؤسسة",
         }
         return page_html
 

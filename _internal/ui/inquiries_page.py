@@ -500,7 +500,7 @@ class InquiriesPage(QWidget):
         from datetime import datetime
         import database as db
 
-        school      = settings.get("school_name", "المؤسسة التعليمية")
+        school      = db.get_formatted_school_name()
         school_type = settings.get("school_type", "المدرسة")
         wilaya      = settings.get("wilaya", "")
         school_addr = settings.get("school_address", school)
@@ -524,6 +524,14 @@ class InquiriesPage(QWidget):
             reason_line = "<b>%s</b>" % details
         else:
             reason_line = "عدم تأدية المهام الموكلة إليكم: <b>%s</b>" % details
+
+        school_stage = settings.get("school_stage", "متوسط")
+        if school_stage == "إبتدائي":
+            decree_text = "* بناءً على القرار رقم: 839 مؤرخ في 13 فبرير 1991 ،يحدد مهام مديري المدارس الأساسية للطورين الأول والثاني الابتدائيات."
+        elif school_stage == "ثانوي":
+            decree_text = "* بناءً على القرار رقم: 297 مؤرخ في 17 جوان 2006 يعدل و يتمم القرار 176 المؤرخ في 02 مارس 1991 المحدد لمهام مدير مؤسسة التعليم الثانوي."
+        else:
+            decree_text = "* بناءً على القرار رقم: 175 المؤرخ في 1991/03/02 المحدد لمهام مدير المدرسة الأساسية"
 
         # ── CSS shared by both copies ─────────────────────────────────────
         css = """
@@ -630,7 +638,7 @@ class InquiriesPage(QWidget):
                   </td>
                     <td rowspan="2"  style="border-radius: 10px; font-size: 11px; border: 1px solid #888; width: 55%%; text-align: center;">
                       * طبقا للقرار الوزاري رقم: 65 المؤرخ في 2018/07/12 المتعلق بتنظيم الجماعة التربوية في المؤسسات التعليمية (أحكام خاصة بالموظفين)<br/>
-                      * بناءً على القرار رقم: 175 المؤرخ في 1991/03/02 المحدد لمهام مدير المدرسة الأساسية
+                      %(decree_text)s
                   </td>
                 </tr>
                
@@ -750,6 +758,7 @@ class InquiriesPage(QWidget):
                 "school_addr": school_addr, "emp_name": emp_name,
                 "emp_grade": emp_grade, "subject_part": subject_part,
                 "today": today, "reason_line": reason_line,
+                "decree_text": decree_text,
             }
 
         copy_html = one_copy()

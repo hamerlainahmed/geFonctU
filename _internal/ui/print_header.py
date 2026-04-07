@@ -66,7 +66,7 @@ def get_document_header(settings=None, doc_number="", show_number=True):
     if settings is None:
         settings = db.get_all_settings()
     
-    school = settings.get("school_name", "المؤسسة التعليمية")
+    school = db.get_formatted_school_name()
     school_code = settings.get("school_code", "")
     wilaya = settings.get("wilaya", "")
     year = datetime.now().year
@@ -105,7 +105,7 @@ def get_document_header_compact(settings=None):
     if settings is None:
         settings = db.get_all_settings()
     
-    school = settings.get("school_name", "المؤسسة التعليمية")
+    school = db.get_formatted_school_name()
     school_code = settings.get("school_code", "")
     wilaya = settings.get("wilaya", "")
     school_year = settings.get("school_year", "2025/2026")

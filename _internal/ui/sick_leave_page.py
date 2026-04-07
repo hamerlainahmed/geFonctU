@@ -671,7 +671,7 @@ class SubstitutionDetailsDialog(QDialog):
         self.sick_leave_id = sick_leave_id
         self.start_date_str = start_date
         # Cap end_date to June 30 of the current school year
-        self.end_date_str = self._cap_end_date(end_date)
+        self.end_date_str = self._cap_end_date(start_date, end_date)
         self.substitute_data = substitute
         teacher_name = db.get_employee_full_name(teacher) if teacher else (substitute.get("teacher_name", "") if substitute else "")
         self.setWindowTitle("تعديل معلومات المستخلف" if substitute else ("استخلاف الأستاذ(ة): %s" % teacher_name))
@@ -682,24 +682,23 @@ class SubstitutionDetailsDialog(QDialog):
             self._populate(substitute)
 
     @staticmethod
-    def _cap_end_date(end_date_str):
+    def _cap_end_date(start_date_str, end_date_str):
         """Cap the substitution end date to June 30 of the current school year.
         
         In Algeria, the school year ends on June 30. Substitution contracts
         cannot extend beyond this date regardless of sick leave duration.
         """
         try:
+            start_date = datetime.strptime(start_date_str.replace("/", "-"), "%Y-%m-%d")
             end_date = datetime.strptime(end_date_str.replace("/", "-"), "%Y-%m-%d")
         except (ValueError, AttributeError):
             return end_date_str
         
-        # Determine the school year's June 30
-        # If end_date is between Jan-June, use same year's June 30
-        # If end_date is between July-Dec, use next year's June 30
-        if end_date.month <= 6:
-            june_30 = datetime(end_date.year, 6, 30)
+        # Determine the school year's June 30 based on the contract start date
+        if start_date.month <= 6:
+            june_30 = datetime(start_date.year, 6, 30)
         else:
-            june_30 = datetime(end_date.year + 1, 6, 30)
+            june_30 = datetime(start_date.year + 1, 6, 30)
         
         if end_date > june_30:
             return june_30.strftime("%Y-%m-%d")
@@ -1150,7 +1149,7 @@ class SickLeavePage(QWidget):
         self._show_print_preview(html, landscape=False)
 
     def _generate_sick_leave_html(self, sl, emp, settings):
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
         school_address = settings.get("school_address", "........................")
@@ -1159,10 +1158,10 @@ class SickLeavePage(QWidget):
         emp_first_name = emp["first_name"]
         emp_grade = emp["grade"] or ""
         subject_line = ""
-        if emp["subject"]:
+        if dict(emp).get("subject") and "أستاذ" in (dict(emp).get("grade", "") or ""):
             subject_line = " مادة %s" % emp["subject"]
 
-        school_display = school
+        school_display = school + " - " + school_address
         if school_code:
             school_display += "<br/>رمز المؤسسة: %s" % school_code
 
@@ -1414,7 +1413,7 @@ class SickLeavePage(QWidget):
 
     def _print_resume_work(self, emp, sl, resume_str):
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
@@ -1422,53 +1421,63 @@ class SickLeavePage(QWidget):
         school_address = settings.get("school_address", "......................")
         emp_name = db.get_employee_full_name(emp)
 
-        subject_line = ""
-        if emp["subject"]:
-            subject_line = "، مادة: <b>%s</b>" % emp["subject"]
+        subject_html = ""
+        if dict(emp).get("subject") and "أستاذ" in (dict(emp).get("grade", "") or ""):
+            subject_html = """
+                <tr>
+                <td style="width: 10%%; padding: 2px; text-align: right; font-size: 16px;"></td>
+                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">التخصص:</td>
+                <td style="width: 60%%; padding: 2px; text-align: right; font-size: 16px;">%s</td>
+                </tr>""" % emp["subject"]
             
-        school_display = school
+        school_display = school + " - " + school_address
         if school_code:
             school_display += "<br/>رمز المؤسسة: %s" % school_code
         today = datetime.now().strftime("%Y/%m/%d")
 
         html = """
-        <html >
+        <html dir="rtl" >
         <head><style>
             body { font-family: 'Amiri', 'Traditional Arabic', serif;
                    margin: 30px;  }
             .header-text { font-size: 16px; font-weight: bold; text-align: center; margin: 2px 0; }
             .header-right { font-size: 14px; font-weight: bold; text-align: right; margin-top: 2px; margin-bottom: 5px;  }
             .doc-title { text-align: center; font-size: 45px; font-weight: bold; margin: 10; font-family: 'Arial', 'Amiri', sans-serif; text-shadow: 2px 2px #ccc; }
-            .intro-text { font-size: 18px; font-weight: bold; margin-bottom: 2px; text-align: right; }
+            .intro-text { font-size: 18px; font-weight: bold; margin-bottom: 15px; margin-top: 15px; text-align: right; }
             .info-table { border-collapse: collapse; width: 100%%; margin: 10px; border: 1px solid black!important; }
             .info-table th, .info-table td { border: 1px solid black!important; padding: 2px; text-align: center; font-size: 14px;  }
         </style></head>
         <body >
-          <table width="100%%"  style="margin-bottom: 5px;">
+          <table width="100%%"  style="margin-bottom: 15px;">
                 <tr>
-                    <td style="text-align:center;padding:0px; font-size: 22px; font-weight: bold; ">
+                    <td style="text-align:center;padding:0px; font-size: 24px; font-weight: bold; ">
                        الجمهورية الجزائرية الديمقراطية الشعبية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:center;padding:0px; font-size: 22px; font-weight: bold; ">
+                    <td style="text-align:center;padding:0px; font-size: 24px; font-weight: bold; ">
                      وزارة التربية الوطنية
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:right;padding:0px; font-size: 18px; font-weight: bold; ">
+                    <td style="text-align:right;padding:0px; font-size: 22px; font-weight: bold; ">
                         مديرية التربية لولاية %(wilaya)s
                       
                     </td>
                 </tr>
                  <tr>
-                    <td style="text-align:right;padding:0px; font-size: 18px; font-weight: bold; ">
+                    <td style="text-align:right;padding:0px; font-size: 22px; font-weight: bold; ">
                        
                         %(school_display)s
                     </td>
                 </tr>
                 <tr>
-                <td width="100%%" style="padding:5px; text-align:center; font-size: 24px; font-weight: bold; ">
+                    <td >
+                  
+                    </td>
+                </tr>
+                <tr>
+                <td width="100%%" style="padding:5px; text-align:center; font-size: 24px; font-weight: bold; padding:10px;">
                   بيان استئناف عمل
                 </td>
                 </tr>
@@ -1478,48 +1487,52 @@ class SickLeavePage(QWidget):
           
 
             <div class="intro-text">
-                إن مدير المؤسسة المذكور أسفله يفيد المعني (ة) و السلطات المختصة باستئناف العمل الوارد أدناه:
+             يشهد مدير المؤسسة أن السيد(ة):
             </div>
-            <table style="width: 100%%; border-collapse: collapse; margin: 15px;">
+            <table style="font-size: 18px; width: 100%%; border-collapse: collapse; margin: 20px;line-height: 2.5;">
                 <tr>
-                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">اللقب و الاسم:</td>
-                <td style="width: 70%%; padding: 2px; text-align: right; font-size: 16px;">%(emp_name)s</td>
+                <td style="width: 10%%; padding: 2px; text-align: right;"></td>
+                <td  style="width: 20%%; padding: 2px; text-align: right;">اللقب و الاسم:</td>
+                <td style="width: 70%%; padding: 2px; text-align: right;">%(emp_name)s</td>
                     
                 </tr>
                 <tr>
-                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">التخصص:</td>
-                <td style="width: 70%%; padding: 2px; text-align: right; font-size: 16px;">%(subject_line)s</td>
+                <td style="width: 10%%; padding: 2px; text-align: right;"></td>
+                <td  style="width: 20%%; padding: 2px; text-align: right;">الرتبة:</td>
+                <td style="width: 70%%; padding: 2px; text-align: right;">%(emp_grade)s</td>
+                    
+                </tr>
+                %(subject_html)s
+                <tr>
+                <td style="width: 10%%; padding: 2px; text-align: right;"></td>
+                <td  style="width: 20%%; padding: 2px; text-align: right;">الوضعية الإدارية:</td>
+                <td style="width: 70%%; padding: 2px; text-align: right;">%(employee_status)s</td>
                     
                 </tr>
                 <tr>
-                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">مؤسسة العمل:</td>
-                <td style="width: 70%%; padding: 2px; text-align: right; font-size: 16px;">%(school)s</td>
+                <td style="width: 10%%; padding: 2px; text-align: right;"></td>
+                <td  style="width: 20%%; padding: 2px; text-align: right;">مؤسسة العمل:</td>
+                <td style="width: 70%%; padding: 2px; text-align: right;">%(school)s</td>
                     
                 </tr>
+            
                 <tr>
-                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">الصفة:</td>
-                <td style="width: 70%%; padding: 2px; text-align: right; font-size: 16px;">%(emp_grade)s</td>
+                <td style="width: 10%%; padding: 2px; text-align: right;"></td>
+                <td  style="width: 20%%; padding: 2px; text-align: right;">استأنف عمله بتاريخ:</td>
+                <td style="width: 70%%; padding: 2px; text-align: right;">%(resume_date)s</td>
                     
-                </tr>
-                <tr>
-                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">تاريخ الاستئناف:</td>
-                <td style="width: 70%%; padding: 2px; text-align: right; font-size: 16px;">%(resume_date)s</td>
-                    
-                </tr>
-                <tr>
-                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">الجنسية:</td>
-                <td style="width: 70%%; padding: 2px; text-align: right; font-size: 16px;">جزائرية</td>   
                 </tr>
                   <tr>
-                <td  style="width: 30%%; padding: 2px; text-align: right; font-size: 16px;">الملاحظة:</td>
-                <td style="width: 70%%; padding: 2px; text-align: right; font-size: 16px;"></td>   
+                <td style="width: 10%%; padding: 2px; text-align: right;"></td>
+                <td  style="width: 20%%; padding: 2px; text-align: right;">الملاحظة:</td>
+                <td style="width: 70%%; padding: 2px; text-align: right;"></td>   
                 </tr>
             </table>
             
-            <table width="100%%"  style="margin-top: 15px;">
+            <table width="100%%"  style="margin-top: 25px;">
                <tr>
              
-                  <td style="text-align:center; width:30%%;">إمضاء المعني(ة) بالأمر</td>
+                  <td style="text-align:center; width:30%%;">إمضاء الموظف</td>
              <td style="text-align:center; width:30%%;"></td>
                 <td style="font-size:16px; font-weight: bold; text-align:center; width:40%%;">
                         %(school_address)s في : %(today)s
@@ -1544,7 +1557,8 @@ class SickLeavePage(QWidget):
             "wilaya": wilaya, "school": school, "school_display": school_display, "school_year": school_year,
             "school_address": school_address,
             "emp_name": emp_name, "emp_grade": emp["grade"] or "",
-            "subject_line": emp["subject"] or "",
+            "subject_html": subject_html,
+            "employee_status": dict(emp).get("employee_status") or "مرسم",
             "start_date": sl["start_date"], "end_date": sl["end_date"],
             "resume_date": resume_str,
             "today": today, "director": director,
@@ -1553,7 +1567,7 @@ class SickLeavePage(QWidget):
 
     def _print_end_substitution(self, teacher, subst):
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
@@ -1600,7 +1614,7 @@ class SickLeavePage(QWidget):
                 </tr>
                 <tr>
                     <td width="60%%"></td>
-                    <td width="40%%" style="text-align:center;">مكتب التعليم المتوسط</td>
+                    <td width="40%%" style="text-align:center;">%(desk_label)s</td>
                 </tr>
             </table>
             </div>
@@ -1719,6 +1733,7 @@ class SickLeavePage(QWidget):
             "wilaya": wilaya, "school": school, "school_display": school_display, "school_year": school_year,
             "school_address": school_address, "teacher_name": teacher_name,
             "teacher_subject": teacher["subject"] or "................",
+            "desk_label": self._get_desk_label(settings),
             "sub_name": subst["substitute_name"],
             "sub_last_name": dict(subst).get("substitute_last_name", "") or "................",
             "sub_first_name": dict(subst).get("substitute_first_name", "") or "................",
@@ -1742,7 +1757,7 @@ class SickLeavePage(QWidget):
         """Print محضر التنصيب for a substitute."""
         teacher = db.get_employee(subst["teacher_id"])
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
@@ -1766,6 +1781,8 @@ class SickLeavePage(QWidget):
             sub_first_name = parts[1] if len(parts) > 1 else ""
         
         teacher_subject = teacher["subject"] if teacher else "............"
+        settings = db.get_all_settings()
+        sub_grade_info = self._get_sub_grade_info(settings, dict(subst).get("substitute_degree_type", ""))
 
         html = """
         <html >
@@ -1793,7 +1810,7 @@ class SickLeavePage(QWidget):
 
                     
             
-            <table style="width: 100%%; font-size: 18px; margin: 5px auto;">
+            <table style="width: 100%%; font-size: 18px; margin: 5px auto; line-height: 2.5;">
                 <tr> <td class="content-p">
                 بنـــاء على مقرر التوظيف في إطـــار التعاقد على منصب مالي شاغـــر مؤقت عطلـــة مرضية
                
@@ -1808,20 +1825,20 @@ class SickLeavePage(QWidget):
                  <td class="content-p">قمنا نحن السيد : مدير %(school)s   يوم: %(start_date)s بتنصيب السيد(ة):
                 </td></tr>
                 <tr><td style="width: 100%%;"></td></tr>
-                <tr style="line-height: 1.5;">
+                <tr style="line-height: 2.5;">
                     <td style="width: 100%%;">اللقب : %(sub_last_name)s</td>
                 </tr>
-                <tr style="line-height: 1.5;">
+                <tr style="line-height: 2.5;">
                     <td style="width: 100%%;">الاسم : %(sub_first_name)s</td>
                 </tr>   
-                <tr style="line-height: 1.5;">
+                <tr style="line-height: 2.5;">
                     <td style="width: 100%%;">تاريخ الميلاد : %(sub_birth_date)s بـ %(sub_birth_place)s</td>
                 </tr>
-                <tr style="line-height: 1.5;">
-                    <td style="width: 100%%;">الوظيفة : أستاذ(ة) مادة %(teacher_subject)s</td>
+                <tr style="line-height: 2.5;">
+                    <td style="width: 100%%;">الوظيفة : %(sub_prof_title)s - مادة %(teacher_subject)s</td>
                 </tr>
-                <tr style="line-height: 1.5;">
-                    <td style="width: 100%%;">الصفة : مستخلف(ة) عطلة مرضية</td>
+                <tr style="line-height: 2.5;">
+                    <td style="width: 100%%;">الوضعية الإدارية : مستخلف(ة) عطلة مرضية</td>
                 </tr>
             </table>
 
@@ -1853,6 +1870,7 @@ class SickLeavePage(QWidget):
             "sub_birth_date": subst["substitute_birth_date"].replace("-", "/"),
             "sub_birth_place": subst["substitute_birth_place"],
             "teacher_subject": teacher_subject,
+            "sub_prof_title": sub_grade_info["title"],
             "today": today_str
         }
         self._show_print_preview(html)
@@ -1862,7 +1880,7 @@ class SickLeavePage(QWidget):
         teacher = db.get_employee(subst["teacher_id"])
         sick_leave = db.get_sick_leave(subst["sick_leave_id"])
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "......................")
         teacher_name = db.get_employee_full_name(teacher) if teacher else "......................"
@@ -1881,15 +1899,10 @@ class SickLeavePage(QWidget):
         end_date = dict(subst).get("end_date", "").replace("-", "/")
 
         degree_type = dict(subst).get("substitute_degree_type", "") or ""
-        if "ليسانس" in degree_type:
-            class_grade, index_points = "12", "737"
-            prof_title = "أستاذ التعليم المتوسط"
-        elif "ماستر" in degree_type or "مهندس" in degree_type:
-            class_grade, index_points = "13", "778"
-            prof_title = "أستاذ التعليم الثانوي"
-        else:
-            class_grade, index_points = "____", "____"
-            prof_title = "أستاذ"
+        grade_info = self._get_sub_grade_info(settings, degree_type)
+        class_grade = grade_info["class"]
+        index_points = grade_info["index"]
+        prof_title = grade_info["title"]
 
         html = """
         <html dir="rtl">
@@ -1950,26 +1963,26 @@ class SickLeavePage(QWidget):
                   
                 </tr>
                 <tr>
-                    <td  style="font-size: 16px;">- بناء على الشهادة الطبية المؤرخة في <b>%(cert_date)s</b> المقدمة من طرف الأستاذ(ة): <b>%(teacher_name)s</b> .</td>
+                    <td  style="font-size: 18px;">- بناء على الشهادة الطبية المؤرخة في <b>%(cert_date)s</b> المقدمة من طرف الأستاذ(ة): <b>%(teacher_name)s</b> .</td>
                     
                 </tr>
                 <tr>
-                    <td  style="font-size: 16px;">- بناء على طلب التوظيف المقدم من طرف السيد(ة): <b>%(sub_name)s</b> المؤرخ في : <b>%(sub_start_date)s</b> .</td>
+                    <td  style="font-size: 18px;">- بناء على طلب التوظيف المقدم من طرف السيد(ة): <b>%(sub_name)s</b> المؤرخ في : <b>%(sub_start_date)s</b> .</td>
                     
                 </tr>
                 <tr>
-                    <td  style="font-size: 16px;"> الحاصل(ة) على شهادة: <b>%(sub_degree_type)s تخصص %(sub_degree_spec)s</b> الصادرة عن : <b>%(sub_degree_source)s</b> .</td>
+                    <td  style="font-size: 18px;"> الحاصل(ة) على شهادة: <b>%(sub_degree_type)s تخصص %(sub_degree_spec)s</b> الصادرة عن : <b>%(sub_degree_source)s</b> .</td>
                    
                 </tr>
                 <tr>
-                    <td  style="font-size: 16px;">- باقتراح من السيـــد(ة) مديـر(ة): <b>%(school)s</b> .</td>
+                    <td  style="font-size: 18px;">- باقتراح من السيـــد(ة) مديـر(ة): <b>%(school)s</b> .</td>
                     
                 </tr>
             </table>
 
             <div align="center" style="font-size: 24px; font-weight: bold; margin-top: 1px; margin: 10px;">يــــــــقــــــــــــرر</div>
 
-            <table width="100%%" cellspacing="0" cellpadding="0"  style="text-align: right;font-size: 18px;">
+            <table width="100%%" cellspacing="0" cellpadding="0"  style="text-align: right;font-size: 20px;">
                 <tr>
                     <td colspan="2" >
                         <span style="font-weight: bold; text-decoration: underline;">المـادة الأولــى :</span> يوظف السيــد (ة) : <b>%(sub_name)s</b>، 
@@ -2025,7 +2038,7 @@ class SickLeavePage(QWidget):
 
     def _print_sub_work_cert(self, subst):
         settings = db.get_all_settings()
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "")
         school_address = settings.get("school_address", "......................")
@@ -2434,6 +2447,48 @@ class SickLeavePage(QWidget):
         self._toast_container.addWidget(toast)
         self._active_toasts.append(toast)
         toast.show_toast()
+
+    def _get_sub_grade_info(self, settings, degree_type):
+        """Determine substitute grade title, classification, and index based on school stage and diploma."""
+        stage = settings.get("school_stage", "متوسط")
+        degree = (degree_type or "").strip()
+        
+        if stage == "إبتدائي" or stage == "ابتدائي":
+            stage_label = "الابتدائي"
+            if "ماستر" in degree or "مهندس" in degree:
+                return {"title": "أستاذ التعليم %s قسم أول" % stage_label, "class": "13", "index": "778"}
+            elif "ليسانس" in degree:
+                return {"title": "أستاذ التعليم %s" % stage_label, "class": "12", "index": "737"}
+            else:
+                return {"title": "أستاذ التعليم %s" % stage_label, "class": "____", "index": "____"}
+        elif stage == "ثانوي":
+            stage_label = "الثانوي"
+            if "ماجستير" in degree or "دكتوراه" in degree:
+                return {"title": "أستاذ التعليم %s قسم أول" % stage_label, "class": "14", "index": "821"}
+            elif "ماستر" in degree or "مهندس" in degree:
+                return {"title": "أستاذ التعليم %s" % stage_label, "class": "12", "index": "737"}
+            elif "ليسانس" in degree:
+                return {"title": "أستاذ التعليم %s" % stage_label, "class": "12", "index": "737"}
+            else:
+                return {"title": "أستاذ التعليم %s" % stage_label, "class": "____", "index": "____"}
+        else:  # متوسط (default)
+            stage_label = "المتوسط"
+            if "ماستر" in degree or "مهندس" in degree:
+                return {"title": "أستاذ التعليم %s قسم أول" % stage_label, "class": "13", "index": "778"}
+            elif "ليسانس" in degree:
+                return {"title": "أستاذ التعليم %s" % stage_label, "class": "12", "index": "737"}
+            else:
+                return {"title": "أستاذ التعليم %s" % stage_label, "class": "____", "index": "____"}
+
+    def _get_desk_label(self, settings):
+        """Return the correct office name based on school stage."""
+        stage = settings.get("school_stage", "متوسط")
+        if stage == "إبتدائي":
+            return "مكتب التعليم الابتدائي"
+        elif stage == "ثانوي":
+            return "مكتب التعليم الثانوي"
+        else:
+            return "مكتب التعليم المتوسط"
 
     def _get_school_initials(self, school_name):
         """Extract initials from school name, ignoring honorary/type prefixes."""

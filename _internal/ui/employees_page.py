@@ -21,6 +21,7 @@ from ui.widgets import (
 from ui.documents_modal import PrintDocumentDialog
 from ui.inquiry_dialog import InquiryDialog
 from ui.icons import get_icon
+from category_deducer import deduce_category_from_grade
 from ui.evaluation_dialog import (
     compute_score_limits, get_remark, score_to_arabic_words,
     get_previous_years, is_eligible_for_evaluation, get_eligible_employees,
@@ -29,15 +30,60 @@ from ui.evaluation_dialog import (
 import database as db
 
 GRADES = [
-    "أستاذ التعليم المتوسط", "أستاذ التعليم الابتدائي", "أستاذ التعليم الثانوي",
-    "أستاذ رئيسي", "أستاذ مكوّن", "مساعد تربوي", "مستشار التربية",
-    "مستشار التوجيه", "مقتصد", "نائب مقتصد", "مدير", "نائب مدير",
-    "عامل مهني", "عون وقاية", "عون خدمة", "سائق", "طباخ", "مخزني", "حاجب",
-    "حارس", "كاتب", "محاسب", "إداري",
+    # ── التفتيش ──
+    "مفتش التربية الوطنية",
+    "مفتش التعليم الثانوي", "مفتش التوجيه والإرشاد المدرسي والمهني في الثانويات",
+    "مفتش التسيير المالي والمادي في الثانويات", "مفتش التعليم المتوسط",
+    "مفتش التوجيه والإرشاد المدرسي والمهني في المتوسطات", "مفتش التعليم الابتدائي",
+    "مفتش التسيير المالي والمادي في المتوسطات",
+    # ── الإدارة والنظار ──
+    "مدير ثانوية", "مدير متوسطة", "مدير المدرسة الابتدائية",
+    "ناظر في التعليم الثانوي", "ناظر في التعليم المتوسط", "ناظر في التعليم الابتدائي",
+    # ── الأسلاك الخاصة: ثانوي ──
+    "أستاذ مميز في التعليم الثانوي", "أستاذ التعليم الثانوي قسم ثان",
+    "أستاذ التعليم الثانوي قسم أول", "أستاذ التعليم الثانوي",
+    # ── الأسلاك الخاصة: متوسط ──
+    "أستاذ مميز في التعليم المتوسط", "أستاذ التعليم المتوسط قسم ثان",
+    "أستاذ التعليم المتوسط قسم أول", "أستاذ التعليم المتوسط",
+    # ── الأسلاك الخاصة: ابتدائي ──
+    "أستاذ مميز في التعليم الابتدائي", "أستاذ التعليم الابتدائي قسم ثان",
+    "أستاذ التعليم الابتدائي قسم أول", "أستاذ التعليم الابتدائي",
+    "أستاذ التعليم الأساسي", "معلم مدرسة ابتدائية",
+    # ── التوجيه المدرسي ──
+    "مستشار رئيس للتوجيه والإرشاد المدرسي والمهني", "مستشار رئيسي للتوجيه والإرشاد المدرسي والمهني",
+    "مستشار محلل للتوجيه والإرشاد المدرسي والمهني", "مستشار التوجيه والإرشاد المدرسي والمهني",
+    # ── التربية ──
+    "مستشار التربية", "مشرف عام للتربية", "مشرف رئيس للتربية", "مشرف رئيسي للتربية",
+    "مشرف التربية", "مساعد رئيسي للتربية", "مساعد التربية",
+    # ── الدعم التربوي ──
+    "مربي متخصص عام في الدعم التربوي", "مربي متخصص رئيس في الدعم التربوي",
+    "مربي متخصص رئيسي في الدعم التربوي", "مربي متخصص في الدعم التربوي",
+    # ── التغذية والمصالح الاقتصادية ──
+    "مستشار رئيس في التغذية المدرسية", "مستشار رئيسي في التغذية المدرسية", "مستشار التغذية المدرسية",
+    "مقتصد رئيسي", "مقتصد", "نائب مقتصد مسير", "نائب مقتصد",
+    "مساعد رئيسي للمصالح الاقتصادية", "مساعد المصالح الاقتصادية",
+    # ── المخابر ──
+    "ملحق مشرف بالمخابر", "ملحق رئيس بالمخابر", "ملحق رئيسي بالمخابر", "ملحق بالمخابر",
+    "معاون تقني للمخابر", "عون تقني للمخابر",
+    # ── الأسلاك المشتركة ──
+    "متصرف محلل", "متصرف", "مهندس إعلام آلي", "ملحق إدارة", "عون رئيسي", "عون إدارة",
+    # ── العمال المهنيين (المتعاقدون والمثبتون) ──
+    "عامل مهني مستوى 4", "عامل مهني مستوى 3", "عامل مهني مستوى 2", "عامل مهني مستوى 1",
+    "عامل مهني صنف خارج الصنف", "عامل مهني صنف أول", "عامل مهني صنف ثاني", "عامل مهني صنف ثالث",
+    # ── أخرى ──
+    "سائق وزن ثقيل", "سائق سيارة من الصنف الأول", "سائق سيارة من الصنف الثاني",
+    "حاجب رئيسي", "حاجب", "عون وقاية", "طباخ", "مخزني", "حارس",
 ]
 
 # الرتب المعفاة من الدرجات (ليس لهم درجة ولا تاريخ سريان)
-WORKER_GRADES = ["عامل مهني", "عون وقاية", "عون خدمة", "سائق", "طباخ", "مخزني", "حاجب"]
+WORKER_GRADES = [
+    "عامل مهني", "عون وقاية", "عون خدمة", "سائق", "طباخ", "مخزني", "حاجب",
+    "عامل مهني مستوى 1", "عامل مهني مستوى 2", "عامل مهني مستوى 3", "عامل مهني مستوى 4",
+    "عامل مهني صنف ثالث", "عامل مهني صنف ثاني", "عامل مهني صنف أول", "عامل مهني صنف خارج الصنف",
+    "سائق سيارة من الصنف الأول", "سائق سيارة من الصنف الثاني", "سائق وزن ثقيل",
+    "حاجب رئيسي", "حارس",
+]
+
 
 FAMILY_STATUS = ["أعزب(ة)", "متزوج(ة)", "مطلق(ة)", "أرمل(ة)"]
 
@@ -270,6 +316,10 @@ class EmployeeDialog(QDialog):
         self.code_input = ArabicLineEdit("الرمز الوظيفي")
         form.addRow("الرمز الوظيفي:", self.code_input)
 
+        self.employee_status_combo = ArabicComboBox()
+        self.employee_status_combo.addItems(["مرسم", "متربص", "متعاقد"])
+        form.addRow("الوضعية الإدارية:", self.employee_status_combo)
+
         self.grade_combo = ArabicComboBox()
         self.grade_combo.setEditable(True)
         all_grades = list(GRADES)
@@ -289,7 +339,18 @@ class EmployeeDialog(QDialog):
         form.addRow(self.subject_label, self.subject_input)
 
         self.category_input = ArabicLineEdit("الصنف (مثال: 11)")
-        form.addRow("الصنف:", self.category_input)
+        category_row = QHBoxLayout()
+        category_row.setSpacing(8)
+        category_row.addWidget(self.category_input)
+        self.category_info_label = QLabel("")
+        self.category_info_label.setStyleSheet(
+            "font-size: 11px; font-weight: bold; padding: 2px 8px; "
+            "border-radius: 4px; background: #f1f5f9; color: #64748b;"
+        )
+        self.category_info_label.setVisible(False)
+        category_row.addWidget(self.category_info_label)
+        category_row.addStretch()
+        form.addRow("الصنف:", category_row)
 
         self.degree_input = ArabicLineEdit("الدرجة (رقم)")
         self.degree_input.textChanged.connect(self._on_degree_changed)
@@ -586,9 +647,40 @@ class EmployeeDialog(QDialog):
     # ══════════════════════════════════════════════════════════════════════
 
     def _on_grade_changed(self, text):
-        is_teacher = "أستاذ" in text
+        txt = text.strip()
+        is_teacher = "أستاذ" in txt or "استاذ" in txt
         self.subject_input.setVisible(is_teacher)
         self.subject_label.setVisible(is_teacher)
+        if not is_teacher:
+            self.subject_input.clear()
+            
+        # Deduce category based on the grade
+        if txt:
+            stage = db.get_setting("school_stage", "متوسط")
+            deduction = deduce_category_from_grade(txt, stage)
+            conf = deduction.get("confidence_score", 0)
+            cat = deduction.get("category", "")
+            rank = deduction.get("official_rank", "")
+            
+            if conf > 50 and cat:
+                self.category_input.setText(cat)
+                self.category_info_label.setText("✅ %s — صنف %s" % (rank, cat))
+                self.category_info_label.setStyleSheet(
+                    "font-size: 11px; font-weight: bold; padding: 2px 8px; "
+                    "border-radius: 4px; background: #f0fdf4; color: #166534;"
+                )
+                self.category_info_label.setVisible(True)
+            elif deduction.get("status") == "need_more_info":
+                self.category_info_label.setText("⚠️ لم يُتعرّف على الرتبة")
+                self.category_info_label.setStyleSheet(
+                    "font-size: 11px; font-weight: bold; padding: 2px 8px; "
+                    "border-radius: 4px; background: #fff7ed; color: #c2410c;"
+                )
+                self.category_info_label.setVisible(True)
+            else:
+                self.category_info_label.setVisible(False)
+        else:
+            self.category_info_label.setVisible(False)
 
         # الرتب المعفاة ليس لها درجة ولا تاريخ سريان
         is_worker = any(w in text for w in WORKER_GRADES)
@@ -598,6 +690,9 @@ class EmployeeDialog(QDialog):
         if is_worker and hasattr(self, 'effective_date'):
             self.effective_date.setVisible(False)
             self.effective_date_label.setVisible(False)
+        elif not is_worker and hasattr(self, 'degree_input'):
+            # Restore effective_date visibility based on degree value
+            self._on_degree_changed(self.degree_input.text())
 
         self._refresh_eval_eligibility()
 
@@ -772,6 +867,13 @@ class EmployeeDialog(QDialog):
         # Tab 2
         self.code_input.setText(emp["employee_code"] or "")
 
+        status_val = dict(emp).get("employee_status") or "مرسم"
+        idx = self.employee_status_combo.findText(status_val)
+        if idx >= 0:
+            self.employee_status_combo.setCurrentIndex(idx)
+        else:
+            self.employee_status_combo.setEditText(status_val)
+
         grade_val = emp["grade"] or ""
         idx = self.grade_combo.findText(grade_val)
         if idx >= 0:
@@ -781,7 +883,9 @@ class EmployeeDialog(QDialog):
 
         self.subject_input.setText(emp["subject"] or "")
         try:
-            self.category_input.setText(emp["category"] or "")
+            db_cat = emp["category"] or ""
+            if db_cat:
+                self.category_input.setText(db_cat)
         except (IndexError, KeyError):
             pass
         self.degree_input.setText(emp["degree"] or "")
@@ -854,6 +958,7 @@ class EmployeeDialog(QDialog):
     def get_data(self):
         return {
             "employee_code": self.code_input.text().strip(),
+            "employee_status": self.employee_status_combo.currentText().strip() or "مرسم",
             "last_name": self.last_name_input.text().strip(),
             "first_name": self.first_name_input.text().strip(),
             "maiden_name": self.maiden_name_input.text().strip(),

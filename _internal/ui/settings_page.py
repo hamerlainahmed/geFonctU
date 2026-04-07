@@ -72,9 +72,13 @@ class SettingsPage(ScrollablePageWidget):
         
         self.school_name_input = ArabicLineEdit("اسم المؤسسة التعليمية")
         school_form.addRow("اسم المؤسسة:", self.school_name_input)
+
+        self.school_stage_combo = ArabicComboBox()
+        self.school_stage_combo.addItems(["متوسط", "إبتدائي", "ثانوي"])
+        school_form.addRow("الطور:", self.school_stage_combo)
         
         self.school_code_input = ArabicLineEdit("رمز المؤسسة (مثل: 123456)")
-        school_form.addRow("رمز المؤسسة:", self.school_code_input)
+        school_form.addRow("رمز المؤسسة أو المأمن:", self.school_code_input)
 
         self.school_address_input = ArabicLineEdit("عنوان المؤسسة")
         school_form.addRow("البلدية:", self.school_address_input)
@@ -82,8 +86,7 @@ class SettingsPage(ScrollablePageWidget):
         self.wilaya_input = ArabicLineEdit("الولاية")
         school_form.addRow("الولاية:", self.wilaya_input)
 
-        self.moudiriya_input = ArabicLineEdit("مديرية التربية")
-        school_form.addRow("المديرية:", self.moudiriya_input)
+
 
         self.director_input = ArabicLineEdit("اسم المدير(ة)")
         school_form.addRow("المدير(ة):", self.director_input)
@@ -165,19 +168,21 @@ class SettingsPage(ScrollablePageWidget):
     def _load_settings(self):
         settings = db.get_all_settings()
         self.school_name_input.setText(settings.get("school_name", ""))
+        self.school_stage_combo.setCurrentText(settings.get("school_stage", "متوسط"))
         self.school_code_input.setText(settings.get("school_code", ""))
         self.school_address_input.setText(settings.get("school_address", ""))
         self.wilaya_input.setText(settings.get("wilaya", ""))
-        self.moudiriya_input.setText(settings.get("moudiriya", ""))
+
         self.director_input.setText(settings.get("director_name", ""))
 
 
     def _save_settings(self):
         db.set_setting("school_name", self.school_name_input.text().strip())
+        db.set_setting("school_stage", self.school_stage_combo.currentText().strip())
         db.set_setting("school_code", self.school_code_input.text().strip())
         db.set_setting("school_address", self.school_address_input.text().strip())
         db.set_setting("wilaya", self.wilaya_input.text().strip())
-        db.set_setting("moudiriya", self.moudiriya_input.text().strip())
+
         db.set_setting("director_name", self.director_input.text().strip())
         # db.set_setting("school_year", ...) removed because it's managed via archive_manager
 

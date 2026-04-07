@@ -90,7 +90,7 @@ class PrintDocumentDialog(QDialog):
         doc_date = self.doc_date.date().toString("yyyy/MM/dd")
         reason = self.reason_input.toPlainText().strip()
 
-        school = settings.get("school_name", "المؤسسة التعليمية")
+        school = db.get_formatted_school_name()
         wilaya = settings.get("wilaya", "")
         director = settings.get("director_name", "")
         school_year = settings.get("school_year", "2025/2026")
@@ -245,7 +245,7 @@ class PrintDocumentDialog(QDialog):
                 </tr>
                 <tr>
                     <th style="border: 1px solid black; padding: 12px; text-align: center; font-size: 16px; font-weight: bold;">الجنسية</th>
-                    <th style="border: 1px solid black; padding: 12px; text-align: center; font-size: 16px; font-weight: bold;">الصفة</th>
+                    <th style="border: 1px solid black; padding: 12px; text-align: center; font-size: 16px; font-weight: bold;">الوضعية الإدارية</th>
                     <th style="border: 1px solid black; padding: 12px; text-align: center; font-size: 16px; font-weight: bold;">تاريخ الاستئناف</th>
                     <th style="border: 1px solid black; padding: 12px; text-align: center; font-size: 16px; font-weight: bold;">الملاحظة</th>
                 </tr>
