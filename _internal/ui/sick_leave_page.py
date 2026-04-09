@@ -1921,10 +1921,10 @@ class SickLeavePage(QWidget):
         <head><style>
             body { font-family: 'Traditional Arabic', 'Amiri', serif;
                    text-align: right; margin: 0px; padding: 0px; font-size: 18px; }
-            .header-text { font-size: 24px; font-weight: bold; text-align: center; }
-            .entete { font-size: 22px; font-weight: bold; text-align: right; margin-bottom: 2px; }
+            .header-text { line-height: 0.9; font-size: 24px; font-weight: bold; text-align: center; }
+            .entete { line-height: 0.9; font-size: 22px; font-weight: bold; text-align: right; margin-bottom: 1px; }
             .considerations { font-size: 12px; text-align: right; }
-            .article { text-align: right; font-size: 14px; margin-top: 5px; }
+            .article { text-align: right; font-size: 14px; margin-top: 3px; }
             .article-title { font-weight: bold; text-decoration: underline; }
             .footer-table td { font-weight: bold; padding: 0; margin: 0; font-size: 14px; }
         </style></head>
@@ -1943,9 +1943,9 @@ class SickLeavePage(QWidget):
             
             </div>
 
-            <div align="center" style="width:fit-content;margin:auto;border: 2px solid black;border-radius: 10px;padding: 10px;text-align: center;">
-                <h2 style="font-size: 24px;font-weight: bold;text-align: center;margin:0px">مقرر توظـيف في اطار التعاقد</h2>
-                <h3 style="font-size: 22px;font-weight: bold;text-align: center;margin:0px">عطلة مرضية / عطلة أمومة</h3>
+            <div align="center" style="width:fit-content;margin:auto;border: 2px solid black;border-radius: 10px;padding: 5px;text-align: center;">
+                <h2 style="font-size: 22px;font-weight: bold;text-align: center;margin:0px">مقرر توظـيف في اطار التعاقد</h2>
+                <h3 style="font-size: 20px;font-weight: bold;text-align: center;margin:0px">عطلة مرضية / عطلة أمومة</h3>
             </div>
 
             <table width="100%%" cellspacing="0" cellpadding="0"  style="text-align: right;font-size: 16px;">
@@ -1992,7 +1992,7 @@ class SickLeavePage(QWidget):
                 </tr>
             </table>
 
-            <div align="center" style="font-size: 24px; font-weight: bold; margin-top: 1px; margin: 10px;">يــــــــقــــــــــــرر</div>
+            <div align="center" style="font-size: 24px; font-weight: bold; margin: 5px;">يــــــــقــــــــــــرر</div>
 
             <table width="100%%" cellspacing="0" cellpadding="0"  style="text-align: right;font-size: 20px;">
                 <tr>
