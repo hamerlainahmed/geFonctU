@@ -556,7 +556,7 @@ class SickLeaveRequestDialog(QDialog):
 
         # Update save button text based on substitution
         if self.needs_substitution():
-            self.save_btn.setText(" 📝 إدخال معلومات الاستخلاف")
+            self.save_btn.setText(" ✔ حفظ العطلة المرضية")
         else:
             self.save_btn.setText(" ✔ تأكيد الطلب")
 
@@ -1114,19 +1114,31 @@ class SickLeavePage(QWidget):
             self.refresh()  # Immediate refresh before modals
 
             if dialog.needs_substitution():
-                # Show substitution details dialog
-                subst_dialog = SubstitutionDetailsDialog(
-                    emp, sl_id, data["start_date"], data["end_date"], self
+                reply = QMessageBox.question(
+                    self, "حجز الاستخلاف",
+                    "تم حفظ العطلة المرضية بنجاح.\nهل تريد حجز معلومات المستخلف الآن؟",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
                 )
-                if subst_dialog.exec_() == QDialog.Accepted:
-                    subst_data = subst_dialog.get_data()
-                    db.add_substitution(subst_data)
-                    self.refresh()  # Immediate refresh for substitution
-                    QMessageBox.information(
-                        self, "نجاح",
-                        "✅ تم تسجيل العطلة المرضية والاستخلاف بنجاح.\n"
-                        "يمكنك الآن طباعة محضر التنصيب ومقرر التعيين من قائمة الإجراءات."
+                if reply == QMessageBox.Yes:
+                    # Show substitution details dialog
+                    subst_dialog = SubstitutionDetailsDialog(
+                        emp, sl_id, data["start_date"], data["end_date"], self
                     )
+                    if subst_dialog.exec_() == QDialog.Accepted:
+                        subst_data = subst_dialog.get_data()
+                        db.add_substitution(subst_data)
+                        self.refresh()  # Immediate refresh for substitution
+                        QMessageBox.information(
+                            self, "نجاح",
+                            "✅ تم تسجيل العطلة المرضية والاستخلاف بنجاح.\n"
+                            "يمكنك الآن طباعة محضر التنصيب ومقرر التعيين من قائمة الإجراءات."
+                        )
+                    else:
+                        QMessageBox.information(
+                            self, "تنبيه",
+                            "تم تسجيل العطلة المرضية بدون استخلاف.\n"
+                            "يمكنك إضافة الاستخلاف لاحقاً."
+                        )
                 else:
                     QMessageBox.information(
                         self, "تنبيه",

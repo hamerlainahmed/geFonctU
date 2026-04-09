@@ -1369,20 +1369,45 @@ class EmployeesPage(QWidget):
             return
 
         data = dialog.get_data()
+        leave_type = data.get("leave_type", "عطلة مرضية")
+        deduction_month = data.get("deduction_month", "")
         sl_id = db.add_sick_leave(data)
 
+        if deduction_month and emp:
+            deduction_data = {
+                "employee_id": data["employee_id"],
+                "deduction_type": leave_type,
+                "duration_days": data["duration_days"],
+                "cert_date": data["medical_cert_date"],
+                "deduction_month": deduction_month,
+                "notes": "اقتطاع تلقائي — %s" % leave_type,
+            }
+            db.add_manual_deduction(deduction_data)
+
         if dialog.needs_substitution():
-            subst_dialog = SubstitutionDetailsDialog(
-                emp, sl_id, data["start_date"], data["end_date"], self
+            reply = QMessageBox.question(
+                self, "حجز الاستخلاف",
+                "تم حفظ العطلة المرضية بنجاح.\nهل تريد حجز معلومات المستخلف الآن؟",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
             )
-            if subst_dialog.exec_() == QDialog.Accepted:
-                subst_data = subst_dialog.get_data()
-                db.add_substitution(subst_data)
-                QMessageBox.information(
-                    self, "نجاح",
-                    "✅ تم تسجيل العطلة المرضية والاستخلاف بنجاح.\n"
-                    "يمكنك طباعة المحضر من صفحة العطل المرضية."
+            if reply == QMessageBox.Yes:
+                subst_dialog = SubstitutionDetailsDialog(
+                    emp, sl_id, data["start_date"], data["end_date"], self
                 )
+                if subst_dialog.exec_() == QDialog.Accepted:
+                    subst_data = subst_dialog.get_data()
+                    db.add_substitution(subst_data)
+                    QMessageBox.information(
+                        self, "نجاح",
+                        "✅ تم تسجيل العطلة المرضية والاستخلاف بنجاح.\n"
+                        "يمكنك طباعة المحضر من صفحة العطل المرضية."
+                    )
+                else:
+                    QMessageBox.information(
+                        self, "تنبيه",
+                        "تم تسجيل العطلة المرضية بدون استخلاف.\n"
+                        "يمكنك إضافة الاستخلاف لاحقاً من صفحة العطل المرضية."
+                    )
             else:
                 QMessageBox.information(
                     self, "تنبيه",
@@ -1411,7 +1436,7 @@ class EmployeesPage(QWidget):
     # ── طباعة جماعية لاستمارات التنقيط ──────────────────────────────────
 
     def _batch_print_evaluations(self):
-        """طباعة استمارات التنقيط لجميع الموظفين المؤهلين."""
+        """طباعة استمارات التنقيط لجميع الموظفين المؤهلين مرتبين حسب الرتبة لتجميعهم."""
         eligible = get_eligible_employees()
         if not eligible:
             QMessageBox.information(
@@ -1419,6 +1444,13 @@ class EmployeesPage(QWidget):
                 "لا يوجد موظفون خاضعون للتقييم في القائمة الحالية."
             )
             return
+
+        # تجميع الرتب مع بعضها (أساتذة مع بعض، عمال مع بعض...)
+        # الفرز يتم حسب: 1- الرتبة، 2- اللقب، 3- الاسم
+        eligible = sorted(
+            list(eligible),
+            key=lambda e: (dict(e).get("grade") or "", dict(e).get("last_name") or "", dict(e).get("first_name") or "")
+        )
 
         reply = QMessageBox.question(
             self, "طباعة جماعية",
