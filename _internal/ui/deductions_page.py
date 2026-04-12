@@ -123,10 +123,15 @@ class ManualDeductionDialog(QDialog):
 
     def _on_type_changed(self, text):
         """Show/hide certificate date based on deduction type."""
-        # Certificate date only relevant for medical/maternity leave
-        show_cert = text in ("عطلة مرضية", "عطلة أمومة")
+        # Certificate date also functions as absence date for unjustified
+        show_cert = text in ("عطلة مرضية", "عطلة أمومة", "غير مبرر")
         self.cert_date.setVisible(show_cert)
         self.cert_date_label.setVisible(show_cert)
+        
+        if text == "غير مبرر":
+            self.cert_date_label.setText("تاريخ الغياب:")
+        else:
+            self.cert_date_label.setText("تاريخ الشهادة الطبية:")
 
     def _save(self):
         idx = self.employee_combo.currentIndex()
@@ -137,7 +142,7 @@ class ManualDeductionDialog(QDialog):
 
     def get_data(self):
         deduction_type = self.type_combo.currentText()
-        show_cert = deduction_type in ("عطلة مرضية", "عطلة أمومة")
+        show_cert = deduction_type in ("عطلة مرضية", "عطلة أمومة", "غير مبرر")
         return {
             "employee_id": self.employee_combo.currentData(),
             "deduction_type": deduction_type,
@@ -561,7 +566,7 @@ class DeductionsPage(QWidget):
                         "code": emp["account_number"] or "",
                         "days": inq["deduction_days"],
                         "type": "غير مبرر",
-                        "cert_date": "",
+                        "cert_date": dict(inq).get("inquiry_date", ""),
                     })
 
         # 2. Sick leaves (only old ones without deduction_month — new ones use manual deductions)
@@ -598,6 +603,73 @@ class DeductionsPage(QWidget):
                     "type": md_d["deduction_type"],
                     "cert_date": md_d.get("cert_date", "") or "",
                 })
+
+        # ── Aggregate Unjustified Deductions ──
+        aggregated_rows = []
+        unjustified_map = {}
+
+        for r in all_rows:
+            if r["type"] == "غير مبرر" and r["cert_date"]:
+                # Parse date and format as range string using QDate safely
+                date_str = r["cert_date"].replace("/", "-")
+                d = QDate.fromString(date_str, "yyyy-MM-dd")
+                
+                try:
+                    days_val = float(r["days"])
+                except:
+                    days_val = 0.0
+                    
+                if d.isValid():
+                    start_str = d.toString("yyyy/MM/dd")
+                    if days_val > 1 and days_val.is_integer():
+                        end_str = d.addDays(int(days_val) - 1).toString("yyyy/MM/dd")
+                        formatted_date = f"[{start_str} إلى {end_str}]"
+                    else:
+                        formatted_date = f"[{start_str}]"
+                else:
+                    # Fallback to replacing hyphens with slashes if parsing fails
+                    formatted_date = f"[{r['cert_date'].replace('-', '/')}]"
+                    
+                r["cert_date"] = formatted_date
+            elif r["cert_date"]:
+                # Normal replace back for valid dates of other types
+                r["cert_date"] = r["cert_date"].replace("-", "/")
+                
+            if r["type"] == "غير مبرر":
+                key = (r["name"], r["code"])
+                if key in unjustified_map:
+                    try:
+                        existing_days = float(unjustified_map[key]["days"])
+                    except:
+                        existing_days = 0.0
+                    try:
+                        new_days = float(r["days"])
+                    except:
+                        new_days = 0.0
+                        
+                    total_days = existing_days + new_days
+                    unjustified_map[key]["days"] = int(total_days) if total_days.is_integer() else total_days
+                    
+                    existing_date = unjustified_map[key]["cert_date"]
+                    new_date = r["cert_date"]
+                    if existing_date and new_date:
+                        # Append with " - "
+                        unjustified_map[key]["cert_date"] = f"{existing_date} - {new_date}"
+                    elif new_date:
+                        unjustified_map[key]["cert_date"] = new_date
+                else:
+                    new_r = dict(r)
+                    try:
+                        d_val = float(new_r["days"])
+                        new_r["days"] = int(d_val) if d_val.is_integer() else d_val
+                    except:
+                        pass
+                    unjustified_map[key] = new_r
+            else:
+                aggregated_rows.append(r)
+                
+        aggregated_rows.extend(unjustified_map.values())
+        all_rows = aggregated_rows
 
         # ── Split by category ──
         teacher_rows = [r for r in all_rows if self._is_teacher(r["grade"])]
@@ -674,7 +746,14 @@ class DeductionsPage(QWidget):
         # Build table rows
         table_rows = ""
         for idx, r in enumerate(rows):
-            cert_display = r["cert_date"].replace("-", "/") if r["cert_date"] else ""
+            cert_display = r["cert_date"] if r["cert_date"] else ""
+            
+            try:
+                days_val = float(r["days"])
+                days_str = "%02d يوم" % int(days_val) if days_val.is_integer() else "%s يوم" % days_val
+            except (ValueError, TypeError):
+                days_str = "%s يوم" % r["days"]
+                
             table_rows += (
                 '<tr style="">'
                 '<td style="padding:1px;border:1px solid #333;text-align:center;">%02d</td>'
@@ -685,7 +764,7 @@ class DeductionsPage(QWidget):
                 '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
                 '<td style="padding:1px;border:1px solid #333;text-align:center;font-weight:bold;">%s</td>'
                 '</tr>'
-            ) % ( idx + 1, r["code"],r["name"],r["grade"], r["type"], "%02d يوم" % r["days"], cert_display )
+            ) % ( idx + 1, r["code"],r["name"],r["grade"], r["type"], days_str, cert_display )
 
         header_cols = (
             '<th style="padding:1px;border:1px solid #333;">الرقم</th>'
@@ -694,7 +773,7 @@ class DeductionsPage(QWidget):
             '<th style="padding:1px;border:1px solid #333;">الرتبة</th>'
             '<th style="padding:1px;border:1px solid #333;">نوع الغياب</th>'
             '<th style="padding:1px;border:1px solid #333;">عدد الأيام</th>'
-            '<th style="padding:1px;border:1px solid #333;">تاريخ الشهادة الطبية</th>'
+            '<th style="padding:1px;border:1px solid #333;">تاريخ الشهادة الطبية أو الغياب</th>'
         )
         
         page_html = """

@@ -96,8 +96,18 @@ def get_previous_years(current_year_str: str, count: int = 3) -> list:
     return years
 
 
-WORKER_GRADES = ["عامل مهني", "عون وقاية", "عون خدمة", "سائق", "طباخ", "مخزني", "حاجب"]
+WORKER_GRADES = ["عون وقاية", "عون خدمة", "سائق", "طباخ", "مخزني", "حاجب"]
 
+def is_worker_exempt(grade: str) -> bool:
+    if not grade:
+        return False
+    if "عامل مهني" in grade:
+        if "مستوى" in grade:
+            return True
+        if "صنف" in grade or "خارج الصنف" in grade:
+            return False
+        return True
+    return any(w in grade for w in WORKER_GRADES)
 
 def is_eligible_for_evaluation(employee) -> bool:
     """
@@ -109,7 +119,7 @@ def is_eligible_for_evaluation(employee) -> bool:
     degree_str = emp.get("degree") or ""
 
     # رتبة عمّالية → معفى
-    if any(w in grade for w in WORKER_GRADES):
+    if is_worker_exempt(grade):
         return False
 
     # درجة 0 أو فارغة → معفى

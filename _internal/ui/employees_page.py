@@ -683,7 +683,8 @@ class EmployeeDialog(QDialog):
             self.category_info_label.setVisible(False)
 
         # الرتب المعفاة ليس لها درجة ولا تاريخ سريان
-        is_worker = any(w in text for w in WORKER_GRADES)
+        from ui.evaluation_dialog import is_worker_exempt
+        is_worker = is_worker_exempt(text)
         if hasattr(self, 'degree_label'):
             self.degree_label.setVisible(not is_worker)
             self.degree_input.setVisible(not is_worker)
@@ -719,7 +720,8 @@ class EmployeeDialog(QDialog):
         degree_str = self.degree_input.text().strip() if hasattr(self, 'degree_input') else ""
 
         exempt = False
-        if "عامل مهني" in grade:
+        from ui.evaluation_dialog import is_worker_exempt
+        if is_worker_exempt(grade):
             exempt = True
         try:
             if degree_str and int(degree_str) == 0:
