@@ -675,31 +675,63 @@ class DeductionsPage(QWidget):
         teacher_rows = [r for r in all_rows if self._is_teacher(r["grade"])]
         admin_rows = [r for r in all_rows if not self._is_teacher(r["grade"])]
 
-        # Sort by type within each category
+        # ── Split by justified / unjustified ──
+        justified_types = {"عطلة مرضية", "عطلة أمومة", "تسوية"}
+
+        teacher_justified = [r for r in teacher_rows if r["type"] in justified_types]
+        teacher_unjustified = [r for r in teacher_rows if r["type"] not in justified_types]
+        admin_justified = [r for r in admin_rows if r["type"] in justified_types]
+        admin_unjustified = [r for r in admin_rows if r["type"] not in justified_types]
+
+        # Sort within each group by employee code then by absence type
         type_order = {"عطلة مرضية": 0, "عطلة أمومة": 1, "غير مبرر": 2, "تسوية": 3}
-        teacher_rows.sort(key=lambda r: type_order.get(r["type"], 99))
-        admin_rows.sort(key=lambda r: type_order.get(r["type"], 99))
+        for group in (teacher_justified, teacher_unjustified, admin_justified, admin_unjustified):
+            group.sort(key=lambda r: (r.get("code", ""), type_order.get(r["type"], 99)))
 
         # ── Generate pages ──
         pages = []
         today = datetime.now().strftime("%d-%m-%Y")
 
-        if admin_rows:
+        # Justified deductions pages
+        if admin_justified:
             pages.append(self._generate_unified_deduction_page(
                 month_name=month_filter,
                 admin_label="تسيير نفقات الموظفين الإداريين والعمال المهنيين",
-                rows=admin_rows,
+                rows=admin_justified,
                 settings=settings,
                 today=today,
+                deduction_class="justified",
             ))
 
-        if teacher_rows:
+        if teacher_justified:
             pages.append(self._generate_unified_deduction_page(
                 month_name=month_filter,
                 admin_label="تسيير نفقات الأساتذة",
-                rows=teacher_rows,
+                rows=teacher_justified,
                 settings=settings,
                 today=today,
+                deduction_class="justified",
+            ))
+
+        # Unjustified deductions pages
+        if admin_unjustified:
+            pages.append(self._generate_unified_deduction_page(
+                month_name=month_filter,
+                admin_label="تسيير نفقات الموظفين الإداريين والعمال المهنيين",
+                rows=admin_unjustified,
+                settings=settings,
+                today=today,
+                deduction_class="unjustified",
+            ))
+
+        if teacher_unjustified:
+            pages.append(self._generate_unified_deduction_page(
+                month_name=month_filter,
+                admin_label="تسيير نفقات الأساتذة",
+                rows=teacher_unjustified,
+                settings=settings,
+                today=today,
+                deduction_class="unjustified",
             ))
 
         if not pages:
@@ -731,8 +763,13 @@ class DeductionsPage(QWidget):
         dialog = AdvancedPdfPreviewDialog(html_content=html, parent=self)
         dialog.exec_()
 
-    def _generate_unified_deduction_page(self, month_name, admin_label, rows, settings, today):
-        """Generate a single unified deduction page HTML with all types."""
+    def _generate_unified_deduction_page(self, month_name, admin_label, rows, settings, today, deduction_class="justified"):
+        """Generate a single deduction page HTML.
+        
+        Args:
+            deduction_class: 'justified' for مبررة (sick leave, maternity, settlement)
+                            'unjustified' for غير مبررة
+        """
         school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         school_address = settings.get("school_address", "........................")
@@ -742,6 +779,16 @@ class DeductionsPage(QWidget):
 
         # Generate school initials for ref number
         school_initials = self._get_school_initials(school)
+
+        # Title and code based on deduction class
+        if deduction_class == "justified":
+            page_title = "جدول الاقتطاعات المبررة"
+            budget_code = "الرمز 401"
+            last_col_header = "تاريخ الشهادة الطبية"
+        else:
+            page_title = "جدول الاقتطاعات غير المبررة"
+            budget_code = "الرمز 301"
+            last_col_header = "الفترة"
 
         # Build table rows
         table_rows = ""
@@ -764,16 +811,16 @@ class DeductionsPage(QWidget):
                 '<td style="padding:1px;border:1px solid #333;text-align:center;">%s</td>'
                 '<td style="padding:1px;border:1px solid #333;text-align:center;font-weight:bold;">%s</td>'
                 '</tr>'
-            ) % ( idx + 1, r["code"],r["name"],r["grade"], r["type"], days_str, cert_display )
+            ) % ( idx + 1, r["code"], r["name"], r["grade"], r["type"], days_str, cert_display )
 
         header_cols = (
             '<th style="padding:1px;border:1px solid #333;">الرقم</th>'
-            '<th style="padding:1px;border:1px solid #333;">رمز الموظف</th>'
+            '<th style="padding:1px;border:1px solid #333;">رقم الحساب</th>'
             '<th style="padding:1px;border:1px solid #333;">اسم ولقب الموظف (ة)</th>'
             '<th style="padding:1px;border:1px solid #333;">الرتبة</th>'
             '<th style="padding:1px;border:1px solid #333;">نوع الغياب</th>'
             '<th style="padding:1px;border:1px solid #333;">عدد الأيام</th>'
-            '<th style="padding:1px;border:1px solid #333;">تاريخ الشهادة الطبية أو الغياب</th>'
+            '<th style="padding:1px;border:1px solid #333;">%s</th>' % last_col_header
         )
         
         page_html = """
@@ -800,14 +847,15 @@ class DeductionsPage(QWidget):
                   
                
                     <td dir="rtl" style=text-align: right;">
-                     <span>الرقم:.............&rlm;/&rlm; %(school_initials)s&rlm;/&rlm; %(year)s</span>
+                     <span>الرقم:..........&rlm;/&rlm; %(school_initials)s&rlm;/&rlm; %(year)s</span>
                     </td>
                     </tr>
             </table>
 
             <div style="margin-top: 20px;margin-bottom: 20px;text-align: center;">
-                <div style=" font-size: 24px; font-weight: bold;">جدول الاقتطاعات المبررة و غير المبررة</div>
+                <div style=" font-size: 24px; font-weight: bold;">%(page_title)s</div>
                 <div style="font-size: 22px; font-weight: bold;">لشهر: %(month_name)s %(year)s</div>
+               
             </div>
 
             <div align="right" style=" font-size: 22px; font-weight: bold;">
@@ -846,6 +894,8 @@ class DeductionsPage(QWidget):
             "school_initials": school_initials,
             "year": current_year,
             "month_name": month_name,
+            "page_title": page_title,
+            "budget_code": budget_code,
             "admin_label": admin_label,
             "header_cols": header_cols,
             "table_rows": table_rows,
