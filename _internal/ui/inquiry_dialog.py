@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
     QTextEdit, QCheckBox, QWidget, QGraphicsDropShadowEffect,
     QSizePolicy, QTimeEdit, QScrollArea, QApplication, QGridLayout,
+    QMessageBox, QComboBox,
 )
 from PyQt5.QtCore import Qt, QDate, QTime, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QColor
@@ -19,6 +20,12 @@ from ui.widgets import (
 )
 import database as db
 from datetime import datetime
+
+INQUIRY_REFERENCES = [
+    "ملاحظات المدير",
+    "المصلحة البيداغوجية",
+    "المصلحة الاقتصادية",
+]
 
 
 INQUIRY_REASONS = [
@@ -125,6 +132,36 @@ class InquiryDialog(QDialog):
         info = ArabicLabel("\u0627\u0644\u0645\u0648\u0638\u0641(\u0629): %s  |  \u0627\u0644\u0631\u062a\u0628\u0629: %s" % (emp_name, emp_grade))
         info.setObjectName("badge_info")
         lay.addWidget(info)
+        lay.addWidget(Separator())
+
+        # ── Reference Selector (مرجع الاستفسار) — mandatory ──
+        ref_lbl = QLabel("📌 مرجع الاستفسار *")
+        ref_lbl.setStyleSheet("font-size: 14px; font-weight: bold; color: #374151;")
+        lay.addWidget(ref_lbl)
+
+        self.reference_combo = QComboBox()
+        self.reference_combo.setLayoutDirection(Qt.RightToLeft)
+        self.reference_combo.setMinimumHeight(38)
+        self.reference_combo.setStyleSheet("""
+            QComboBox {
+                border: 2px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 13px;
+                font-weight: bold;
+                color: #374151;
+                background: #f8fafc;
+            }
+            QComboBox:focus { border-color: #3b82f6; }
+            QComboBox::drop-down { border: none; }
+            QComboBox QAbstractItemView { border: 1px solid #cbd5e1; border-radius: 4px; }
+        """)
+        # Empty placeholder (mandatory — no default value)
+        self.reference_combo.addItem("-- اختر مرجع الاستفسار --", None)
+        for ref in INQUIRY_REFERENCES:
+            self.reference_combo.addItem(ref, ref)
+        lay.addWidget(self.reference_combo)
+
         lay.addWidget(Separator())
 
         # ── Reason Selector ──
@@ -375,8 +412,8 @@ class InquiryDialog(QDialog):
             dur = self.lateness_duration.text().strip() or "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f"
             return "\u062a\u0623\u062e\u0631 \u0628\u062a\u0627\u0631\u064a\u062e: %s\u060c \u0627\u0644\u0648\u0642\u062a: %s\u060c \u0627\u0644\u0645\u062f\u0629: %s" % (d, t, dur)
         else:
-            txt = self.task_description.toPlainText().strip() or "\u0627\u0644\u0645\u0647\u0627\u0645 \u0627\u0644\u0645\u0648\u0643\u0644\u0629"
-            return "\u0639\u062f\u0645 \u062a\u0623\u062f\u064a\u0629: %s" % txt
+            txt = self.task_description.toPlainText().strip() or "المهام الموكلة"
+            return txt
 
     # ──────────────────────────────────────────────
     # HTML Document Generation
@@ -504,6 +541,15 @@ class InquiryDialog(QDialog):
         return html
 
     def _preview_print(self):
+        # Validate mandatory reference field
+        selected_ref = self.reference_combo.currentData()
+        if not selected_ref:
+            QMessageBox.warning(
+                self, "تنبيه",
+                "يرجى اختيار مرجع الاستفسار؟\n(ملاحظات المدير • المصلحة البيداغوجية • المصلحة الاقتصادية)"
+            )
+            return
+
         reason = self._selected_reason
         details = self._get_reason_details()
 
@@ -516,6 +562,7 @@ class InquiryDialog(QDialog):
             "details": details,
             "additional_notes": self.additional_notes.toPlainText().strip(),
             "status": "معلّق",
+            "inquiry_reference": selected_ref,
         }
         inq_id = db.add_inquiry(inquiry_data)
 

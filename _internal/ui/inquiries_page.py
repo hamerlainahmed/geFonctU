@@ -523,7 +523,7 @@ class InquiriesPage(QWidget):
         elif inquiry_type == "تأخر":
             reason_line = "<b>%s</b>" % details
         else:
-            reason_line = "عدم تأدية المهام الموكلة إليكم: <b>%s</b>" % details
+            reason_line = "<b>%s</b>" % details
 
         school_stage = settings.get("school_stage", "متوسط")
         if school_stage == "إبتدائي":
@@ -532,6 +532,17 @@ class InquiriesPage(QWidget):
             decree_text = "* بناءً على القرار رقم: 297 مؤرخ في 17 جوان 2006 يعدل و يتمم القرار 176 المؤرخ في 02 مارس 1991 المحدد لمهام مدير مؤسسة التعليم الثانوي."
         else:
             decree_text = "* بناءً على القرار رقم: 175 المؤرخ في 1991/03/02 المحدد لمهام مدير المدرسة الأساسية"
+
+        # Build the reference line for the printed document
+        inq_ref = inq_dict.get("inquiry_reference") or ""
+        if inq_ref == "ملاحظات المدير":
+            reference_text = "ملاحظات المدير"
+        elif inq_ref == "المصلحة البيداغوجية":
+            reference_text = "تقرير المصلحة البيداغوجية"
+        elif inq_ref == "المصلحة الاقتصادية":
+            reference_text = "تقرير المصلحة الاقتصادية"
+        else:
+            reference_text = "تقرير المصلحة"
 
         # ── CSS shared by both copies ─────────────────────────────────────
         css = """
@@ -665,7 +676,7 @@ class InquiriesPage(QWidget):
              <table width="100%%" border="0" padding="0px" style="margin-top: 10px;margin-bottom: 10px;font-size: 16px;">
                 <tr>
                 <td colspan="3">
-                <u>الـمـرجـع:</u> بناء على التقرير اليومي للمصلحة : <b>%(today)s</b>
+                <u>الـمـرجـع:</u> بناء على %(reference_text)s بتاريخ : <b>%(today)s</b>
                 </td>
                 </tr>
                 <tr>
@@ -759,6 +770,7 @@ class InquiriesPage(QWidget):
                 "emp_grade": emp_grade, "subject_part": subject_part,
                 "today": today, "reason_line": reason_line,
                 "decree_text": decree_text,
+                "reference_text": reference_text,
             }
 
         copy_html = one_copy()
