@@ -543,6 +543,22 @@ class InquiriesPage(QWidget):
             reference_text = "تقرير المصلحة الاقتصادية"
         else:
             reference_text = "تقرير المصلحة"
+            
+        # Parse and enforce YYYY-MM-DD for report_date
+        raw_report_date = inq_dict.get("report_date")
+        if not raw_report_date:
+            raw_report_date = today
+            
+        try:
+            from datetime import datetime
+            # Try to parse it if it's not already in the right format
+            if "/" in raw_report_date:
+                dt = datetime.strptime(raw_report_date, "%d/%m/%Y")
+                report_date = dt.strftime("%d/%m/%Y")
+            else:
+                report_date = raw_report_date
+        except Exception:
+            report_date = raw_report_date.replace("/", "-")
 
         # ── CSS shared by both copies ─────────────────────────────────────
         css = """
@@ -676,7 +692,7 @@ class InquiriesPage(QWidget):
              <table width="100%%" border="0" padding="0px" style="margin-top: 10px;margin-bottom: 10px;font-size: 16px;">
                 <tr>
                 <td colspan="3">
-                <u>الـمـرجـع:</u> بناء على %(reference_text)s بتاريخ : <b>%(today)s</b>
+                <u>الـمـرجـع:</u> بناء على %(reference_text)s بتاريخ : <b>%(report_date)s</b>
                 </td>
                 </tr>
                 <tr>
@@ -771,6 +787,7 @@ class InquiriesPage(QWidget):
                 "today": today, "reason_line": reason_line,
                 "decree_text": decree_text,
                 "reference_text": reference_text,
+                "report_date": report_date,
             }
 
         copy_html = one_copy()

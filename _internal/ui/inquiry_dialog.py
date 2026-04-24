@@ -162,6 +162,15 @@ class InquiryDialog(QDialog):
             self.reference_combo.addItem(ref, ref)
         lay.addWidget(self.reference_combo)
 
+        # ── Report Date ──
+        date_lbl = QLabel("📅 تاريخ التقرير *")
+        date_lbl.setStyleSheet("font-size: 14px; font-weight: bold; color: #374151;")
+        lay.addWidget(date_lbl)
+
+        self.report_date = ArabicDateEdit()
+        self.report_date.setDate(QDate.currentDate())
+        lay.addWidget(self.report_date)
+
         lay.addWidget(Separator())
 
         # ── Reason Selector ──
@@ -563,6 +572,7 @@ class InquiryDialog(QDialog):
             "additional_notes": self.additional_notes.toPlainText().strip(),
             "status": "معلّق",
             "inquiry_reference": selected_ref,
+            "report_date": self.report_date.date().toString("yyyy-MM-dd")
         }
         inq_id = db.add_inquiry(inquiry_data)
 

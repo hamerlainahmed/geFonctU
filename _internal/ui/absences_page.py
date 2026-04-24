@@ -34,6 +34,7 @@ class RecordAbsenceDialog(QDialog):
         self._build_ui()
 
     def _build_ui(self):
+        from PyQt5.QtWidgets import QScrollArea, QApplication
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -42,7 +43,29 @@ class RecordAbsenceDialog(QDialog):
         header.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 8px;")
         layout.addWidget(header)
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 8, 0)
+        
         form = ArabicFormLayout()
+        # ── Report Info ──
+        self.report_type_combo = ArabicComboBox()
+        self.report_type_combo.addItems([
+          
+            "المصلحة البيداغوجية",
+            "المصلحة الاقتصادية",
+            "ملاحظات المدير"
+        ])
+        form.addRow("المرجع:", self.report_type_combo)
+
+        self.report_date = ArabicDateEdit()
+        self.report_date.setDate(QDate.currentDate())
+        form.addRow("تاريخ المرجع:", self.report_date)
 
         self.employee_combo = ArabicComboBox()
         self._load_employees()
@@ -61,14 +84,18 @@ class RecordAbsenceDialog(QDialog):
         self.duration_input = ArabicLineEdit("مثال: يوم كامل، ساعتان")
         form.addRow("المدة:", self.duration_input)
 
+
         self.notes_input = QTextEdit()
         self.notes_input.setLayoutDirection(Qt.RightToLeft)
         self.notes_input.setMaximumHeight(80)
         self.notes_input.setPlaceholderText("ملاحظات إضافية...")
         form.addRow("ملاحظات:", self.notes_input)
 
-        layout.addLayout(form)
-        layout.addStretch()
+        content_layout.addLayout(form)
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll, stretch=1)
 
         btn_layout = QHBoxLayout()
         save_btn = ActionButton("تسجيل", "✔", "success")
@@ -79,6 +106,10 @@ class RecordAbsenceDialog(QDialog):
         btn_layout.addWidget(cancel_btn)
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
+
+        screen = QApplication.primaryScreen()
+        if screen:
+            self.setMaximumHeight(int(screen.availableGeometry().height() * 0.8))
 
     def _load_employees(self):
         self.employees = db.get_all_employees()
@@ -106,6 +137,8 @@ class RecordAbsenceDialog(QDialog):
             "salary_deduction": "",
             "performance_deduction": "",
             "notes": self.notes_input.toPlainText().strip(),
+            "report_type": self.report_type_combo.currentText(),
+            "report_date": self.report_date.date().toString("dd/MM/yyyy"),
         }
 
 
@@ -275,11 +308,13 @@ class AbsencesPage(QWidget):
             inquiry_data = {
                 "employee_id": data["employee_id"],
                 "inquiry_type": reason,
-                "inquiry_date": datetime.now().strftime("%Y-%m-%d"),
+                "inquiry_date": datetime.now().strftime("%d/%m/%Y"),
                 "inquiry_time": datetime.now().strftime("%H:%M"),
                 "details": details,
                 "additional_notes": data["notes"],
                 "status": "معلّق",
+                "inquiry_reference": data.get("report_type", "تقرير المصلحة"),
+                "report_date": data.get("report_date", datetime.now().strftime("%d/%m/%Y")),
             }
             inq_id = db.add_inquiry(inquiry_data)
 
