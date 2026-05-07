@@ -665,7 +665,7 @@ class SickLeaveRequestDialog(QDialog):
 class SubstitutionDetailsDialog(QDialog):
     """Dialog for entering full substitute teacher information."""
 
-    def __init__(self, teacher, sick_leave_id, start_date, end_date, parent=None, substitute=None):
+    def __init__(self, teacher, sick_leave_id, start_date, end_date, parent=None, substitute=None, contract_type="استخلاف عطلة مرضية"):
         super().__init__(parent)
         self.teacher = teacher
         self.sick_leave_id = sick_leave_id
@@ -673,8 +673,15 @@ class SubstitutionDetailsDialog(QDialog):
         # Cap end_date to June 30 of the current school year
         self.end_date_str = self._cap_end_date(start_date, end_date)
         self.substitute_data = substitute
+        self.contract_type = contract_type
         teacher_name = db.get_employee_full_name(teacher) if teacher else (substitute.get("teacher_name", "") if substitute else "")
-        self.setWindowTitle("تعديل معلومات المستخلف" if substitute else ("استخلاف الأستاذ(ة): %s" % teacher_name))
+        if substitute:
+            title = "تعديل معلومات المستخلف"
+        elif contract_type == "منصب شاغر":
+            title = "متعاقد على منصب شاغر"
+        else:
+            title = "استخلاف الأستاذ(ة): %s" % teacher_name
+        self.setWindowTitle(title)
         self.setLayoutDirection(Qt.RightToLeft)
         self.setMinimumWidth(680)
         self._build_ui()
@@ -724,16 +731,66 @@ class SubstitutionDetailsDialog(QDialog):
 
         teacher_name = db.get_employee_full_name(self.teacher) if self.teacher else (self.substitute_data.get("teacher_name", "") if self.substitute_data else "")
         header_text = "تعديل معلومات المستخلف(ة) 🔄" if self.substitute_data else "معلومات الأستاذ(ة) المستخلف(ة) 🔄"
+        if self.contract_type == "منصب شاغر" and not self.substitute_data:
+            header_text = "معلومات المتعاقد(ة) — منصب شاغر 📝"
         header = QLabel(header_text)
         header.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b;")
         layout.addWidget(header)
 
         # Period info
-        period_label = ArabicLabel(
-            "تاريخ العطلة: من %s إلى %s  — استخلاف: %s" % (self.start_date_str, self.end_date_str, teacher_name)
-        )
+        if self.contract_type == "منصب شاغر":
+            period_text = "تعاقد على منصب شاغر: من %s إلى %s" % (self.start_date_str, self.end_date_str)
+        else:
+            period_text = "تاريخ العطلة: من %s إلى %s  — استخلاف: %s" % (self.start_date_str, self.end_date_str, teacher_name)
+        period_label = ArabicLabel(period_text)
         period_label.setObjectName("badge_info")
         layout.addWidget(period_label)
+
+        # ── Install date field (separate from sick leave start date) ──
+        install_frame = QFrame()
+        install_frame.setStyleSheet("""
+            QFrame {
+                background: #eff6ff; border: 1.5px solid #93c5fd;
+                border-radius: 8px;
+            }
+        """)
+        install_layout = QHBoxLayout(install_frame)
+        install_layout.setContentsMargins(12, 8, 12, 8)
+        install_layout.setSpacing(12)
+
+        install_icon = QLabel("📅")
+        install_icon.setStyleSheet("font-size: 22px; background: transparent;")
+        install_layout.addWidget(install_icon)
+
+        install_lbl = QLabel("تاريخ التنصيب:")
+        install_lbl.setStyleSheet("font-size: 14px; font-weight: bold; color: #1d4ed8; background: transparent;")
+        install_layout.addWidget(install_lbl)
+
+        self.install_date_input = ArabicDateEdit()
+        self.install_date_input.setStyleSheet("""
+            QDateEdit {
+                padding: 4px 8px; font-size: 14px; font-weight: bold;
+                border: 1.5px solid #93c5fd; border-radius: 6px;
+                background: #fff; min-height: 30px;
+            }
+            QDateEdit:focus { border-color: #3b82f6; }
+            QDateEdit::drop-down { width: 24px; border: none; }
+        """)
+        # Default install date to start_date
+        try:
+            start_qdate = QDate.fromString(self.start_date_str.replace("/", "-"), "yyyy-MM-dd")
+            if start_qdate.isValid():
+                self.install_date_input.setDate(start_qdate)
+        except Exception:
+            pass
+        install_layout.addWidget(self.install_date_input)
+
+        install_note = QLabel("ℹ️ يمكن أن يختلف عن تاريخ بداية العطلة")
+        install_note.setStyleSheet("font-size: 11px; color: #6b7280; background: transparent; font-style: italic;")
+        install_layout.addWidget(install_note)
+        install_layout.addStretch()
+
+        layout.addWidget(install_frame)
 
         grid = QGridLayout()
         grid.setSpacing(12)
@@ -871,6 +928,17 @@ class SubstitutionDetailsDialog(QDialog):
         if dd:
             self.degree_date_input.setDate(QDate.fromString(dd, "yyyy-MM-dd"))
 
+        # Install date: use stored value, fallback to start_date
+        install = sub.get("install_date", "") or sub.get("start_date", "")
+        if install:
+            id_date = QDate.fromString(install.replace("/", "-"), "yyyy-MM-dd")
+            if id_date.isValid():
+                self.install_date_input.setDate(id_date)
+
+        # Contract type
+        ct = sub.get("contract_type", "") or "استخلاف عطلة مرضية"
+        self.contract_type = ct
+
     def _save(self):
         # Validate all fields
         fields = [
@@ -894,9 +962,10 @@ class SubstitutionDetailsDialog(QDialog):
         last_name = self.last_name_input.text().strip()
         first_name = self.first_name_input.text().strip()
         full_name = "%s %s" % (last_name, first_name)
+        teacher_id = self.teacher["id"] if self.teacher else 0
         return {
             "sick_leave_id": self.sick_leave_id,
-            "teacher_id": self.teacher["id"],
+            "teacher_id": teacher_id,
             "substitute_name": full_name,
             "substitute_first_name": first_name,
             "substitute_last_name": last_name,
@@ -914,6 +983,9 @@ class SubstitutionDetailsDialog(QDialog):
             "substitute_address": self.address_input.text().strip(),
             "start_date": self.start_date_str,
             "end_date": self.end_date_str,
+            "install_date": self.install_date_input.date().toString("yyyy-MM-dd"),
+            "contract_type": self.contract_type,
+            "contract_end_reason": self.substitute_data.get("contract_end_reason", "") if self.substitute_data else "",
             "status": self.substitute_data.get("status", "جارية") if self.substitute_data else "جارية",
         }
 
@@ -939,6 +1011,11 @@ class SickLeavePage(QWidget):
         header.setStyleSheet("font-size: 24px; font-weight: bold; color: #1e293b;")
         header_row.addWidget(header)
         header_row.addStretch()
+
+        add_vacant_btn = ActionButton("متعاقد (منصب شاغر)", "📝", "warning")
+        add_vacant_btn.setMinimumHeight(44)
+        add_vacant_btn.clicked.connect(self._add_vacant_contract)
+        header_row.addWidget(add_vacant_btn, alignment=Qt.AlignTop)
 
         add_subst_btn = ActionButton("إضافة استخلاف", "🔄", "success")
         add_subst_btn.setMinimumHeight(44)
@@ -992,15 +1069,29 @@ class SickLeavePage(QWidget):
         subst_layout = QVBoxLayout(self.subst_tab)
         subst_layout.setContentsMargins(0, 12, 0, 0)
 
+        # Filter
+        filter_layout = QHBoxLayout()
+        filter_layout.setContentsMargins(4, 4, 4, 4)
+        filter_label = QLabel("تصفية الاستخلافات:")
+        filter_label.setStyleSheet("font-weight: bold; color: #475569;")
+        self.subst_filter_combo = ArabicComboBox()
+        self.subst_filter_combo.addItems(["الكل", "استخلافات عطل", "مناصب شاغرة"])
+        self.subst_filter_combo.currentIndexChanged.connect(self._refresh_substitutions)
+        self.subst_filter_combo.setFixedWidth(200)
+        filter_layout.addWidget(filter_label)
+        filter_layout.addWidget(self.subst_filter_combo)
+        filter_layout.addStretch()
+        subst_layout.addLayout(filter_layout)
+
         self.subst_table = QTableWidget()
         self.subst_table.setLayoutDirection(Qt.RightToLeft)
-        self.subst_table.setColumnCount(7)
+        self.subst_table.setColumnCount(8)
         self.subst_table.setHorizontalHeaderLabels([
-            "الأستاذ(ة)", "المستخلف(ة)", "تاريخ البداية", "تاريخ النهاية",
+            "الأستاذ(ة)", "المستخلف(ة)", "النوع", "تاريخ التنصيب", "تاريخ النهاية",
             "المادة", "الحالة", "إجراءات"
         ])
         self.subst_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.subst_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        self.subst_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeToContents)
         self.subst_table.horizontalHeader().setDefaultAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.subst_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.subst_table.setAlternatingRowColors(True)
@@ -1012,6 +1103,122 @@ class SickLeavePage(QWidget):
         self.tabs.addTab(self.subst_tab, "🔄  الاستخلافات")
 
         layout.addWidget(self.tabs, stretch=1)
+
+    def _add_vacant_contract(self):
+        """Add a contract teacher for a vacant position (no sick leave, no original teacher)."""
+        # Show dialog to select subject and period
+        dialog = QDialog(self)
+        dialog.setWindowTitle("إضافة متعاقد — منصب شاغر")
+        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.setMinimumWidth(500)
+
+        dlg_layout = QVBoxLayout(dialog)
+        dlg_layout.setSpacing(12)
+        dlg_layout.setContentsMargins(20, 20, 20, 20)
+
+        header = QLabel("📝 متعاقد على منصب شاغر")
+        header.setStyleSheet("font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 8px;")
+        dlg_layout.addWidget(header)
+
+        info_frame = QFrame()
+        info_frame.setStyleSheet("""
+            QFrame {
+                background: #fffbeb; border: 1.5px solid #fde68a;
+                border-radius: 8px;
+            }
+        """)
+        info_layout = QVBoxLayout(info_frame)
+        info_layout.setContentsMargins(12, 8, 12, 8)
+        info_lbl = QLabel(
+            "⚠️ هذا النوع مخصص للأساتذة المتعاقدين على منصب شاغر طول السنة الدراسية.\n"
+            "لا يوجد أستاذ أصلي (المنصب شاغر)."
+        )
+        info_lbl.setWordWrap(True)
+        info_lbl.setStyleSheet("font-size: 12px; color: #92400e; background: transparent;")
+        info_layout.addWidget(info_lbl)
+        dlg_layout.addWidget(info_frame)
+
+        form = ArabicFormLayout()
+
+        # Subject
+        subject_input = ArabicLineEdit("المادة المدرّسة")
+        form.addRow("المادة:", subject_input)
+
+        # Start date
+        start_date_edit = ArabicDateEdit()
+        form.addRow("تاريخ بداية التعاقد:", start_date_edit)
+
+        # End date (default to June 30)
+        end_date_edit = ArabicDateEdit()
+        today = datetime.now()
+        if today.month <= 6:
+            june_30 = datetime(today.year, 6, 30)
+        else:
+            june_30 = datetime(today.year + 1, 6, 30)
+        end_date_edit.setDate(QDate(june_30.year, june_30.month, june_30.day))
+        form.addRow("تاريخ نهاية التعاقد:", end_date_edit)
+
+        dlg_layout.addLayout(form)
+        dlg_layout.addStretch()
+
+        btn_layout = QHBoxLayout()
+        confirm_btn = ActionButton("متابعة", "→", "success")
+        confirm_btn.clicked.connect(dialog.accept)
+        cancel_btn = ActionButton("إلغاء", "✖", "outline")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(confirm_btn)
+        btn_layout.addWidget(cancel_btn)
+        btn_layout.addStretch()
+        dlg_layout.addLayout(btn_layout)
+
+        if dialog.exec_() != QDialog.Accepted:
+            return
+
+        subject = subject_input.text().strip()
+        if not subject:
+            QMessageBox.warning(self, "تنبيه", "يرجى إدخال المادة المدرّسة.")
+            return
+
+        start_str = start_date_edit.date().toString("yyyy-MM-dd")
+        end_str = end_date_edit.date().toString("yyyy-MM-dd")
+
+        # We need a placeholder teacher record — we'll use a virtual teacher_id = 0
+        # by creating a temporary "placeholder" or use the first matching teacher for subject
+        # Actually for vacant post contracts, there is NO teacher — we'll store teacher_id as 0
+        # and track the subject separately.
+
+        # Show substitute details dialog with contract_type = "منصب شاغر"
+        subst_dialog = SubstitutionDetailsDialog(
+            teacher=None,
+            sick_leave_id=None,
+            start_date=start_str,
+            end_date=end_str,
+            parent=self,
+            contract_type="منصب شاغر",
+        )
+        if subst_dialog.exec_() == QDialog.Accepted:
+            subst_data = subst_dialog.get_data()
+            subst_data["teacher_id"] = 0  # No original teacher
+            subst_data["sick_leave_id"] = None
+            subst_data["contract_type"] = "منصب شاغر"
+            # Store the subject in substitute_degree_speciality if no teacher
+            # We actually need a way to track the subject — let's use a notes approach
+            # Actually the teacher_subject is derived from teacher, but for vacant posts
+            # we'll need to store it. Let's use a workaround: we'll create a dummy teacher row
+            # or better: store the subject in the substitution data itself.
+            # The cleanest approach: store it in substitute_degree_speciality for now,
+            # but actually the subject should be stored separately. 
+            # For simplicity and backward compat, we'll add the subject to the substitute_name field context:
+            subst_data["_vacant_subject"] = subject
+            db.add_substitution(subst_data)
+            # Store the vacant subject as a setting linked to this substitution
+            self.refresh()
+            QMessageBox.information(
+                self, "نجاح",
+                "✅ تم تسجيل المتعاقد على المنصب الشاغر بنجاح.\n"
+                "المادة: %s\n"
+                "يمكنك الآن طباعة محضر التنصيب والمقرر من قائمة الإجراءات." % subject
+            )
 
     def _add_substitution(self):
         """Add substitution for a teacher already on sick leave."""
@@ -1585,8 +1792,24 @@ class SickLeavePage(QWidget):
         director = settings.get("director_name", "")
         school_year = settings.get("school_year", "2025/2026")
         school_address = settings.get("school_address", "......................")
-        teacher_name = db.get_employee_full_name(teacher)
+        teacher_name = db.get_employee_full_name(teacher) if teacher else "................"
         today_str = datetime.now().strftime("%Y/%m/%d")
+        
+        subst_dict = dict(subst)
+        contract_type = subst_dict.get("contract_type", "") or "استخلاف عطلة مرضية"
+        teacher_subject = teacher["subject"] if teacher else subst_dict.get("vacant_subject", "") or "................"
+        end_date_str = subst["end_date"].replace("-", "/")
+        
+        if contract_type == "منصب شاغر":
+            end_statement_html = "متعاقد(ة) على منصب شاغر (مادة %s) أنهى/أنهت تعاقده(ها) بتاريــــخ %s." % (teacher_subject, end_date_str)
+            subject_title_html = "الموضوع: نهاية التعاقد"
+            card_title_html = "بطاقة معلومات الخاصة بالأساتذة المتعاقدين"
+        else:
+            end_statement_html = "مستخلفــ(ة) علــى منصــب عطلــة مرضيــة (مادة %s) أنهــــت إستخلافهـــا بتاريــــخ %s." % (teacher_subject, end_date_str)
+            subject_title_html = "الموضوع: نهاية الإستخلاف"
+            card_title_html = "بطاقة معلومات الخاصة بالأساتذة المستخلفين"
+        
+        install_date = (subst_dict.get("install_date", "") or subst_dict.get("start_date", "")).replace("-", "/")
 
         school_display = school + " - " + school_address
         if school_code:
@@ -1631,10 +1854,10 @@ class SickLeavePage(QWidget):
             </table>
             </div>
 
-            <div class="subject-title">الموضوع: نهاية الإستخلاف</div>
+            <div class="subject-title">%(subject_title_html)s</div>
 
             <p class="content-p">
-                نعلم سيادتكم أن الأستـــاذ(ة) : %(sub_name)s مستخلفــ(ة) علــى منصــب عطلــة مرضيــة (مادة %(teacher_subject)s) أنهــــت إستخلافهـــا بتاريــــخ %(end_date)s.
+                نعلم سيادتكم أن الأستـــاذ(ة) : %(sub_name)s %(end_statement_html)s
             </p>
 
              <table width="100%%" style="margin-top: 15px; margin-bottom: 5px;">
@@ -1682,7 +1905,7 @@ class SickLeavePage(QWidget):
               
                 <tr>
                 <td style="text-align:center; font-size: 24px; font-weight: bold; ">
-                  <h2>بطاقة معلومات الخاصة بالأساتذة المتعاقدين</h2>
+                  <h2>%(card_title_html)s</h2>
                 </td>
                 </tr>
                 <tr>
@@ -1744,7 +1967,7 @@ class SickLeavePage(QWidget):
         """ % {
             "wilaya": wilaya, "school": school, "school_display": school_display, "school_year": school_year,
             "school_address": school_address, "teacher_name": teacher_name,
-            "teacher_subject": teacher["subject"] or "................",
+            "teacher_subject": teacher_subject,
             "desk_label": self._get_desk_label(settings),
             "sub_name": subst["substitute_name"],
             "sub_last_name": dict(subst).get("substitute_last_name", "") or "................",
@@ -1760,14 +1983,18 @@ class SickLeavePage(QWidget):
             "sub_degree_type": subst["substitute_degree_type"],
             "sub_degree_spec": subst["substitute_degree_speciality"],
             "sub_degree_date": subst["substitute_degree_date"],
-            "start_date": subst["start_date"].replace("-", "/"), "end_date": subst["end_date"].replace("-", "/"),
+            "start_date": install_date, "end_date": end_date_str,
             "today": today_str, "director": director,
+            "subject_title_html": subject_title_html,
+            "end_statement_html": end_statement_html,
+            "card_title_html": card_title_html,
         }
         self._show_print_preview(html)
 
     def _print_installation_report(self, subst):
         """Print محضر التنصيب for a substitute."""
-        teacher = db.get_employee(subst["teacher_id"])
+        subst_dict = dict(subst)
+        teacher = db.get_employee(subst["teacher_id"]) if subst["teacher_id"] else None
         settings = db.get_all_settings()
         school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
@@ -1776,13 +2003,13 @@ class SickLeavePage(QWidget):
         school_address = settings.get("school_address", "......................")
         current_year = datetime.now().strftime("%Y")
         today_str = datetime.now().strftime("%Y/%m/%d")
-        start_date = dict(subst).get("start_date", "").replace("-", "/")
+        # Use install_date for the installation report (not start_date)
+        install_date = (subst_dict.get("install_date", "") or subst_dict.get("start_date", "")).replace("-", "/")
 
         school_display = school + " - " + school_address
         if school_code:
             school_display += "<br/>رمز المؤسسة: %s" % school_code
 
-        subst_dict = dict(subst)
         sub_last_name = subst_dict.get("substitute_last_name", "") or ""
         sub_first_name = subst_dict.get("substitute_first_name", "") or ""
         
@@ -1792,7 +2019,16 @@ class SickLeavePage(QWidget):
             sub_last_name = parts[0]
             sub_first_name = parts[1] if len(parts) > 1 else ""
         
-        teacher_subject = teacher["subject"] if teacher else "............"
+        contract_type = subst_dict.get("contract_type", "") or "استخلاف عطلة مرضية"
+        if contract_type == "منصب شاغر":
+            teacher_subject = subst_dict.get("vacant_subject", "") or "............"
+            contract_reason_html = "بنـــاء على مقرر التوظيف في إطـــار التعاقد على منصب مالي شاغـــر"
+            contract_status_html = "متعاقد(ة) على منصب شاغر"
+        else:
+            teacher_subject = teacher["subject"] if teacher else "............"
+            contract_reason_html = "بنـــاء على مقرر التوظيف في إطـــار التعاقد على منصب مالي شاغـــر مؤقت عطلـــة مرضية"
+            contract_status_html = "مستخلف(ة) عطلة مرضية"
+
         settings = db.get_all_settings()
         sub_grade_info = self._get_sub_grade_info(settings, dict(subst).get("substitute_degree_type", ""))
 
@@ -1824,7 +2060,7 @@ class SickLeavePage(QWidget):
             
             <table style="width: 100%%; font-size: 18px; margin: 5px auto; line-height: 2.5;">
                 <tr> <td class="content-p">
-                بنـــاء على مقرر التوظيف في إطـــار التعاقد على منصب مالي شاغـــر مؤقت عطلـــة مرضية
+                %(contract_reason_html)s
                
                
                 </td></tr>
@@ -1834,7 +2070,7 @@ class SickLeavePage(QWidget):
                 رقم: ........... /م.ت/م.ت.م/ %(current_year)s بتاريخ: %(today_str)s.
                 </td></tr>
                 <tr>
-                 <td class="content-p">قمنا نحن السيد : مدير %(school)s   يوم: %(start_date)s بتنصيب السيد(ة):
+                 <td class="content-p">قمنا نحن السيد : مدير %(school)s   يوم: %(install_date)s بتنصيب السيد(ة):
                 </td></tr>
                 <tr><td style="width: 100%%;"></td></tr>
                 <tr style="line-height: 2.5;">
@@ -1850,7 +2086,7 @@ class SickLeavePage(QWidget):
                     <td style="width: 100%%;">الوظيفة : %(sub_prof_title)s - مادة %(teacher_subject)s</td>
                 </tr>
                 <tr style="line-height: 2.5;">
-                    <td style="width: 100%%;">الوضعية الإدارية : مستخلف(ة) عطلة مرضية</td>
+                    <td style="width: 100%%;">الوضعية الإدارية : %(contract_status_html)s</td>
                 </tr>
             </table>
 
@@ -1877,26 +2113,37 @@ class SickLeavePage(QWidget):
         """ % {
             "wilaya": wilaya, "school": school, "school_display": school_display, "current_year": current_year,
             "school_address": school_address,
-            "today_str": today_str, "start_date": start_date,
+            "today_str": today_str, "install_date": install_date,
             "sub_last_name": sub_last_name, "sub_first_name": sub_first_name,
             "sub_birth_date": subst["substitute_birth_date"].replace("-", "/"),
             "sub_birth_place": subst["substitute_birth_place"],
             "teacher_subject": teacher_subject,
             "sub_prof_title": sub_grade_info["title"],
-            "today": today_str
+            "today": today_str,
+            "contract_reason_html": contract_reason_html,
+            "contract_status_html": contract_status_html
         }
         self._show_print_preview(html)
 
     def _print_appointment_decision(self, subst):
         """Print مقرر التعيين (مقرر تعاقد) for a substitute."""
-        teacher = db.get_employee(subst["teacher_id"])
-        sick_leave = db.get_sick_leave(subst["sick_leave_id"])
+        subst_dict = dict(subst)
+        teacher = db.get_employee(subst["teacher_id"]) if subst["teacher_id"] else None
+        sick_leave = db.get_sick_leave(subst["sick_leave_id"]) if subst["sick_leave_id"] else None
         settings = db.get_all_settings()
         school = db.get_formatted_school_name()
         school_code = settings.get("school_code", "")
         wilaya = settings.get("wilaya", "......................")
-        teacher_name = db.get_employee_full_name(teacher) if teacher else "......................"
-        subject = teacher["subject"] if teacher and teacher["subject"] else "......................"
+        
+        contract_type = subst_dict.get("contract_type", "") or "استخلاف عطلة مرضية"
+        
+        if teacher:
+            teacher_name = db.get_employee_full_name(teacher)
+            subject = teacher["subject"] or "......................"
+        else:
+            teacher_name = "......................"
+            subject = subst_dict.get("vacant_subject", "") or "......................"
+            
         current_year = datetime.now().strftime("%Y")
         
         school_display = school
@@ -1904,17 +2151,29 @@ class SickLeavePage(QWidget):
             school_display += "<br/>رمز المؤسسة: %s" % school_code
         
         cert_date = dict(sick_leave).get("medical_cert_date", "").replace("-", "/") if sick_leave else ""
-        if not cert_date:
+        if contract_type != "منصب شاغر" and not cert_date:
             cert_date = "....................."
 
         start_date = dict(subst).get("start_date", "").replace("-", "/")
         end_date = dict(subst).get("end_date", "").replace("-", "/")
+        install_date = (dict(subst).get("install_date", "") or dict(subst).get("start_date", "")).replace("-", "/")
 
         degree_type = dict(subst).get("substitute_degree_type", "") or ""
         grade_info = self._get_sub_grade_info(settings, degree_type)
         class_grade = grade_info["class"]
         index_points = grade_info["index"]
         prof_title = grade_info["title"]
+        
+        if contract_type == "منصب شاغر":
+            title_html = '<h3 style="font-size: 20px;font-weight: bold;text-align: center;margin:0px">منصب مالي شاغر</h3>'
+            cert_html = ""
+            contract_reason_html = "في إطار التعاقد على منصب مالي شاغر"
+            replace_html = ""
+        else:
+            title_html = '<h3 style="font-size: 20px;font-weight: bold;text-align: center;margin:0px">عطلة مرضية / عطلة أمومة</h3>'
+            cert_html = '<tr><td style="font-size: 18px;">- بناء على الشهادة الطبية المؤرخة في <b>%s</b> المقدمة من طرف الأستاذ(ة): <b>%s</b> .</td></tr>' % (cert_date, teacher_name)
+            contract_reason_html = "في إطار التعاقد على منصب شاغر مؤقت (عطلة مرضية)"
+            replace_html = '<tr><td colspan="2" > خلفــا للأستاذ(ة) : <b>%s</b> بالمؤسسة : <b>%s</b>.</td></tr>' % (teacher_name, school)
 
         html = """
         <html dir="rtl">
@@ -1945,7 +2204,7 @@ class SickLeavePage(QWidget):
 
             <div align="center" style="width:fit-content;margin:auto;border: 2px solid black;border-radius: 10px;padding: 5px;text-align: center;">
                 <h2 style="font-size: 22px;font-weight: bold;text-align: center;margin:0px">مقرر توظـيف في اطار التعاقد</h2>
-                <h3 style="font-size: 20px;font-weight: bold;text-align: center;margin:0px">عطلة مرضية / عطلة أمومة</h3>
+                %(title_html)s
             </div>
 
             <table width="100%%" cellspacing="0" cellpadding="0"  style="text-align: right;font-size: 16px;">
@@ -1974,10 +2233,7 @@ class SickLeavePage(QWidget):
                     <td >- بناء على التعليمة الوزارية رقم : 05 المؤرخ في 2025/07/24 التي تحدد كيفيات توظيف أساتذة بصفة متعاقدين في مؤسسات التعليم التابعة لوزارة التربية الوطنية ودفع رواتبهم.</td>
                   
                 </tr>
-                <tr>
-                    <td  style="font-size: 18px;">- بناء على الشهادة الطبية المؤرخة في <b>%(cert_date)s</b> المقدمة من طرف الأستاذ(ة): <b>%(teacher_name)s</b> .</td>
-                    
-                </tr>
+                %(cert_html)s
                 <tr>
                     <td  style="font-size: 18px;">- بناء على طلب التوظيف المقدم من طرف السيد(ة): <b>%(sub_name)s</b> المؤرخ في : <b>%(sub_start_date)s</b> .</td>
                     
@@ -2000,9 +2256,9 @@ class SickLeavePage(QWidget):
                         <span style="font-weight: bold; text-decoration: underline;">المـادة الأولــى :</span> يوظف السيــد (ة) : <b>%(sub_name)s</b>، 
                     </td>
                 </tr>
-                <tr><td colspan="2" > في إطار التعاقد على منصب شاغر مؤقت (عطلة مرضية) من: <b>%(start_date)s</b> إلى: <b>%(end_date)s</b>،</td></tr>
+                <tr><td colspan="2" > %(contract_reason_html)s من: <b>%(start_date)s</b> إلى: <b>%(end_date)s</b>،</td></tr>
                 <tr><td colspan="2" > في رتبة : <b>%(prof_title)s</b>، المادة : <b>%(subject)s</b>،</td></tr>
-                <tr><td colspan="2" > خلفــا للأستاذ(ة) : <b>%(teacher_name)s</b> بالمؤسسة : <b>%(school)s</b>.</td></tr>
+                %(replace_html)s
                 <tr>
                     <td colspan="2" >
                         <span style="font-weight: bold; text-decoration: underline;">المادة الثانية :</span> يتقاضى المعني(ة) بالأمر مرتبه(ها) على أساس الصنف <b>%(class_grade)s</b> الرقم الاستدلالي <b>%(index_points)s</b>.
@@ -2016,7 +2272,7 @@ class SickLeavePage(QWidget):
                 <tr>
                     <td style="font-weight: bold;text-align:right; width:50%%;"></td>
                     <td align="center" style="text-align:center; width:50%%;" >
-                        %(wilaya)s في <b>%(start_date)s</b>
+                        %(wilaya)s في <b>%(install_date)s</b>
                     </td>
                 </tr>
                 <tr>
@@ -2033,7 +2289,7 @@ class SickLeavePage(QWidget):
             "school": school,
             "current_year": current_year,
             "sub_name": subst["substitute_name"],
-            "sub_start_date": dict(subst).get("start_date", "").replace("-", "/"),
+            "sub_start_date": install_date,
             "sub_degree_type": degree_type,
             "sub_degree_spec": subst["substitute_degree_speciality"],
             "sub_degree_source": dict(subst).get("substitute_degree_source", "") or ".....................",
@@ -2041,10 +2297,15 @@ class SickLeavePage(QWidget):
             "teacher_name": teacher_name,
             "start_date": start_date,
             "end_date": end_date,
+            "install_date": install_date,
             "prof_title": prof_title,
             "subject": subject,
             "class_grade": class_grade,
             "index_points": index_points,
+            "title_html": title_html,
+            "cert_html": cert_html,
+            "contract_reason_html": contract_reason_html,
+            "replace_html": replace_html
         }
         self._show_print_preview(html)
 
@@ -2077,18 +2338,18 @@ class SickLeavePage(QWidget):
         emp_bd = (subst_dict.get("substitute_birth_date", "") or "ــــ/ــ/ــ").replace("-", "/")
         emp_bp = subst_dict.get("substitute_birth_place", "") or ""
         
-        emp_grade = "أستاذ(ة) مستخلف(ة)"
+        emp_grade = "أستاذ(ة) مستخلف(ة)" if subst_dict.get("contract_type") != "منصب شاغر" else "أستاذ(ة) متعاقد(ة)"
         emp_subject = ""
-        # Could resolve subject via teacher ID if needed, or leave blank/generic.
-        # Let's see if we can get it from teacher since we usually have teacher_subject in subst dict (it's actually in UI only).
         # We will retrieve teacher to get subject
-        teacher = db.get_employee(subst["teacher_id"])
+        teacher = db.get_employee(subst["teacher_id"]) if subst.get("teacher_id") else None
         if teacher:
             teacher_dict = dict(teacher)
             if teacher_dict.get("subject"):
                 emp_subject = teacher_dict["subject"]
+        else:
+            emp_subject = subst_dict.get("vacant_subject", "")
             
-        effective_date = subst_dict.get("start_date", "ــــ/ــ/ــ").replace("-", "/")
+        effective_date = (subst_dict.get("install_date", "") or subst_dict.get("start_date", "ــــ/ــ/ــ")).replace("-", "/")
         end_date = subst_dict.get("end_date", "").replace("-", "/")
         status = subst_dict.get("status", "جارية")
         if status == "جارية":
@@ -2299,15 +2560,36 @@ class SickLeavePage(QWidget):
 
     def _refresh_substitutions(self):
         substs = db.get_all_substitutions()
+        
+        filter_text = self.subst_filter_combo.currentText()
+        if filter_text == "استخلافات عطل":
+            substs = [s for s in substs if dict(s).get("contract_type", "") != "منصب شاغر"]
+        elif filter_text == "مناصب شاغرة":
+            substs = [s for s in substs if dict(s).get("contract_type", "") == "منصب شاغر"]
+            
         self.subst_table.setRowCount(0)
         self.subst_table.setRowCount(len(substs))
 
         for row, s in enumerate(substs):
+            s_dict = dict(s)
+            contract_type = s_dict.get("contract_type", "") or "استخلاف عطلة مرضية"
+            install_date = s_dict.get("install_date", "") or s_dict.get("start_date", "")
+
             self.subst_table.setItem(row, 0, self._item(s["teacher_name"]))
             self.subst_table.setItem(row, 1, self._item(s["substitute_name"]))
-            self.subst_table.setItem(row, 2, self._item(s["start_date"]))
-            self.subst_table.setItem(row, 3, self._item(s["end_date"]))
-            self.subst_table.setItem(row, 4, self._item(s["teacher_subject"] or ""))
+
+            # Contract type badge
+            type_label = QLabel("عطلة مرضية" if contract_type != "منصب شاغر" else "منصب شاغر")
+            type_label.setAlignment(Qt.AlignCenter)
+            if contract_type == "منصب شاغر":
+                type_label.setObjectName("badge_info")
+            else:
+                type_label.setObjectName("badge_success")
+            self.subst_table.setCellWidget(row, 2, type_label)
+
+            self.subst_table.setItem(row, 3, self._item(install_date))
+            self.subst_table.setItem(row, 4, self._item(s["end_date"]))
+            self.subst_table.setItem(row, 5, self._item(s["teacher_subject"] or ""))
 
             status = s["status"]
             status_label = QLabel(status)
@@ -2316,7 +2598,7 @@ class SickLeavePage(QWidget):
                 status_label.setObjectName("badge_warning")
             else:
                 status_label.setObjectName("badge_success")
-            self.subst_table.setCellWidget(row, 5, status_label)
+            self.subst_table.setCellWidget(row, 6, status_label)
 
             # Actions
             actions = QWidget()
@@ -2356,8 +2638,12 @@ class SickLeavePage(QWidget):
             
             if status == "جارية":
                 menu.addSeparator()
-                end_action = menu.addAction(get_icon("flag", color="#f59e0b"), "طباعة نهاية الاستخلاف وبطاقة المعلومات")
-                end_action.triggered.connect(lambda checked, sid=s["id"], tid=s["teacher_id"]: self._print_end_substitution(db.get_employee(tid), db.get_substitution(sid)))
+                if contract_type == "منصب شاغر":
+                    end_contract_action = menu.addAction(get_icon("flag", color="#dc2626"), "إنهاء العقد")
+                    end_contract_action.triggered.connect(lambda checked, sid=s["id"], sname=s["substitute_name"]: self._end_contract(sid, sname))
+                else:
+                    end_action = menu.addAction(get_icon("flag", color="#f59e0b"), "طباعة نهاية الاستخلاف وبطاقة المعلومات")
+                    end_action.triggered.connect(lambda checked, sid=s["id"], tid=s["teacher_id"]: self._print_end_substitution(db.get_employee(tid), db.get_substitution(sid)))
 
             # Cancel substitution option (always available)
             menu.addSeparator()
@@ -2368,7 +2654,7 @@ class SickLeavePage(QWidget):
             al.addWidget(options_btn)
 
             al.addStretch()
-            self.subst_table.setCellWidget(row, 6, actions)
+            self.subst_table.setCellWidget(row, 7, actions)
             self.subst_table.setRowHeight(row, 48)
 
     def _edit_substitution(self, sid):
@@ -2408,6 +2694,85 @@ class SickLeavePage(QWidget):
                 "✅ تم إلغاء الاستخلاف بنجاح.\n"
                 "يمكنك إضافة مستخلف(ة) جديد(ة) إذا لزم الأمر."
             )
+
+    def _end_contract(self, sub_id, substitute_name):
+        """End a vacant position contract with a reason dialog."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("إنهاء العقد")
+        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.setMinimumWidth(450)
+
+        dlg_layout = QVBoxLayout(dialog)
+        dlg_layout.setSpacing(12)
+        dlg_layout.setContentsMargins(20, 20, 20, 20)
+
+        header = QLabel("⚠️ إنهاء عقد: %s" % substitute_name)
+        header.setStyleSheet("font-size: 16px; font-weight: bold; color: #dc2626;")
+        header.setWordWrap(True)
+        dlg_layout.addWidget(header)
+
+        info_label = QLabel(
+            "سيتم إنهاء العقد مع الحفاظ على سجل المتعاقد في الأرشيف.\n"
+            "يمكنك لاحقاً طباعة شهادة عمل."
+        )
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("font-size: 12px; color: #475569; margin-bottom: 8px;")
+        dlg_layout.addWidget(info_label)
+
+        form = ArabicFormLayout()
+
+        # End date
+        end_date_edit = ArabicDateEdit()
+        form.addRow("تاريخ إنهاء العقد:", end_date_edit)
+
+        # Reason
+        reason_combo = ArabicComboBox()
+        reason_combo.addItems([
+            "تعيين أستاذ رسمي",
+            "نهاية السنة الدراسية",
+            "طلب المتعاقد",
+            "قرار إداري",
+            "سبب آخر",
+        ])
+        reason_combo.setEditable(True)
+        form.addRow("سبب الإنهاء:", reason_combo)
+
+        dlg_layout.addLayout(form)
+        dlg_layout.addStretch()
+
+        btn_layout = QHBoxLayout()
+        confirm_btn = ActionButton("تأكيد الإنهاء", "✓", "danger")
+        confirm_btn.clicked.connect(dialog.accept)
+        cancel_btn = ActionButton("إلغاء", "✖", "outline")
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(confirm_btn)
+        btn_layout.addWidget(cancel_btn)
+        btn_layout.addStretch()
+        dlg_layout.addLayout(btn_layout)
+
+        if dialog.exec_() != QDialog.Accepted:
+            return
+
+        end_date = end_date_edit.date().toString("yyyy-MM-dd")
+        reason = reason_combo.currentText().strip()
+
+        # Update end_date and end the substitution
+        subst = db.get_substitution(sub_id)
+        if subst:
+            data = dict(subst)
+            data["end_date"] = end_date
+            data["contract_end_reason"] = reason
+            data["status"] = "منتهية"
+            db.update_substitution(sub_id, data)
+            db.end_substitution(sub_id, reason)
+
+        self.refresh()
+        QMessageBox.information(
+            self, "تم الإنهاء",
+            "✅ تم إنهاء عقد %s بنجاح.\n"
+            "السبب: %s\n\n"
+            "📋 السجل محفوظ في الأرشيف ويمكنك طباعة شهادة عمل في أي وقت." % (substitute_name, reason)
+        )
 
     def _reprint_resume_work(self, sl_id):
         """Reprint the resume work document for a completed sick leave."""

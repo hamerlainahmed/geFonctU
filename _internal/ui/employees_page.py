@@ -1191,11 +1191,16 @@ class EmployeesPage(QWidget):
         self.table.setRowCount(0)
         self.table.setRowCount(len(employees))
 
-        for row, emp in enumerate(employees):
+        for row, emp_row in enumerate(employees):
+            emp = dict(emp_row)
+            grade_text = emp["grade"] or ""
+            if emp.get("employee_status") == "متعاقد" and emp.get("end_date"):
+                grade_text += " (منتهي العقد)"
+                
             self.table.setItem(row, 0, self._item(emp["employee_code"] or ""))
             self.table.setItem(row, 1, self._item(emp["last_name"] or ""))
             self.table.setItem(row, 2, self._item(emp["first_name"] or ""))
-            self.table.setItem(row, 3, self._item(emp["grade"] or ""))
+            self.table.setItem(row, 3, self._item(grade_text))
             self.table.setItem(row, 4, self._item(emp["subject"] or ""))
             self.table.setItem(row, 5, self._item(emp["degree"] or ""))
             self.table.setItem(row, 6, self._item(emp["effective_date"] or ""))
@@ -1242,21 +1247,32 @@ class EmployeesPage(QWidget):
             edit_action = menu.addAction(get_icon("edit", color="#475569"), "تعديل بيانات الموظف")
             edit_action.triggered.connect(lambda checked, eid=emp["id"]: self._edit_employee(eid))
 
-            inquiry_action = menu.addAction(get_icon("inquiry", color="#475569"), "استفسار")
-            inquiry_action.triggered.connect(lambda checked, eid=emp["id"]: self._open_inquiry(eid))
+            is_ended_contract = emp.get("employee_status") == "متعاقد" and emp.get("end_date")
+
+            if not is_ended_contract:
+                inquiry_action = menu.addAction(get_icon("inquiry", color="#475569"), "استفسار")
+                inquiry_action.triggered.connect(lambda checked, eid=emp["id"]: self._open_inquiry(eid))
 
             # ── النقطة الإدارية → يفتح تعديل البيانات على تبويب التقييم ──
-            if is_eligible_for_evaluation(emp):
+            if not is_ended_contract and is_eligible_for_evaluation(emp):
                 eval_action = menu.addAction(get_icon("document", color="#7c3aed"), "🌟  النقطة الإدارية")
                 eval_action.triggered.connect(lambda checked, eid=emp["id"]: self._open_evaluation(eid))
 
             # ── طلب عطلة مرضية ──
-            sick_leave_action = menu.addAction(get_icon("sick_leave", color="#0891b2"), "🏥  طلب عطلة مرضية")
-            sick_leave_action.triggered.connect(lambda checked, eid=emp["id"]: self._new_sick_leave_for_employee(eid))
+            if not is_ended_contract:
+                sick_leave_action = menu.addAction(get_icon("sick_leave", color="#0891b2"), "🏥  طلب عطلة مرضية")
+                sick_leave_action.triggered.connect(lambda checked, eid=emp["id"]: self._new_sick_leave_for_employee(eid))
+
+            if emp.get("employee_status") == "متعاقد" and not emp.get("end_date"):
+                menu.addSeparator()
+                end_contract_action = menu.addAction(get_icon("flag", color="#dc2626"), "إنهاء العقد")
+                end_contract_action.triggered.connect(lambda checked, eid=emp["id"]: self._end_contract_from_employee_page(eid))
 
             menu.addSeparator()
             del_action = menu.addAction(get_icon("delete", color="#ef4444"), "حذف الموظف")
             del_action.triggered.connect(lambda checked, eid=emp["id"]: self._delete_employee(eid))
+
+
 
             options_btn.setMenu(menu)
             al.addWidget(options_btn)
@@ -1265,6 +1281,58 @@ class EmployeesPage(QWidget):
             self.table.setRowHeight(row, 48)
 
         self.employee_count_changed.emit()
+
+    def _end_contract_from_employee_page(self, emp_id):
+        emp = db.get_employee(emp_id)
+        if not emp: return
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("إنهاء العقد")
+        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.setMinimumWidth(400)
+        
+        dlg_layout = QVBoxLayout(dialog)
+        dlg_layout.setSpacing(12)
+        
+        info_label = QLabel(f"إنهاء عقد المتعاقد(ة): {emp['last_name']} {emp['first_name']}")
+        info_label.setStyleSheet("font-weight: bold; font-size: 16px; color: #1e293b;")
+        dlg_layout.addWidget(info_label)
+        
+        form = QFormLayout()
+        
+        end_date_edit = ArabicDateEdit()
+        end_date_edit.setDate(QDate.currentDate())
+        form.addRow("تاريخ النهاية:", end_date_edit)
+        
+        reason_edit = ArabicLineEdit("السبب (مثال: تعيين أستاذ رسمي، استقالة...)")
+        form.addRow("السبب:", reason_edit)
+        
+        dlg_layout.addLayout(form)
+        
+        btn_layout = QHBoxLayout()
+        save_btn = ActionButton("إنهاء العقد", "flag", "primary")
+        cancel_btn = ActionButton("إلغاء", "close", "outline")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn.clicked.connect(dialog.reject)
+        
+        btn_layout.addWidget(save_btn)
+        btn_layout.addWidget(cancel_btn)
+        dlg_layout.addLayout(btn_layout)
+        
+        if dialog.exec_() != QDialog.Accepted:
+            return
+            
+        end_date_str = end_date_edit.date().toString("yyyy-MM-dd")
+        reason = reason_edit.text().strip()
+        
+        # We save the end date for the employee
+        db.end_employee_contract(emp_id, end_date_str)
+        
+        QMessageBox.information(
+            self, "تمت العملية",
+            f"تم إنهاء العقد بنجاح.\\nتاريخ النهاية: {end_date_str}\\n\\nسيبقى سجل المتعاقد متاحاً لطباعة شهادة العمل والأرشيف."
+        )
+        self.refresh_table()
 
     def _item(self, text):
         item = QTableWidgetItem(text)

@@ -130,7 +130,7 @@ class PrintDocumentDialog(QDialog):
             if school_code:
                 school_display += f"<br/>رمز المؤسسة: {school_code}"
 
-            if "مستخلف" in emp_grade and emp_end_date:
+            if ("مستخلف" in emp_grade or "متعاقد" in emp_grade) and emp_end_date:
                 work_period_sentence = f"أنه زاول عمله من {effective_date} إلى {emp_end_date}."
             else:
                 work_period_sentence = f"أنه يزاول عمله منذ {effective_date} إلى يومنا هذا."
